@@ -1,24 +1,27 @@
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
+const path = require('path');
 const io = require('socket.io')(http, {
   cors: { origin: "*" }
 });
 
-// Servir les fichiers situés dans le dossier "public"
-app.use(express.static('public'));
+// Sert les fichiers statiques directement depuis le dossier racine
+app.use(express.static(__dirname));
 
-// Gestion de la connexion Socket.IO
+// Envoie index.html quand on arrive sur le site
+app.get('/', function(req, res) {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 io.on('connection', function(socket) {
   console.log('Un utilisateur s est connecte');
 
   socket.on('chat message', function(data) {
-    // Transmet le message et l'expéditeur à tout le monde
     io.emit('chat message', data);
   });
 });
 
-// Render attribue dynamiquement le port via la variable d'environnement PORT
 var PORT = process.env.PORT || 3000;
 http.listen(PORT, function() {
   console.log('Serveur lance sur le port ' + PORT);
