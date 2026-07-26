@@ -285,7 +285,6 @@
       float: left;
     }
 
-    /* BULLES MES MESSAGES EN JAUNE */
     .bubble {
       padding: 8px 12px;
       border-radius: 14px;
@@ -465,7 +464,7 @@
 <body>
 
   <!-- ELEMENT RECEPTION AUDIO APPEL EN CONTINU -->
-  <audio id="remote-audio" autoplay></audio>
+  <audio id="remote-audio" autoplay playsinline></audio>
 
   <!-- ÉCRAN 1 : LISTE DE CONTACTS -->
   <div id="sidebar">
@@ -725,16 +724,53 @@
     }
 
     /* ==========================================================================
-       APPELS VOCAUX WEBRTC EN CONTINU
+       APPELS VOCAUX WEBRTC EN CONTINU - FIX AUDIO
        ========================================================================== */
     var peerConnection = null;
     var localStream = null;
     var incomingOffer = null;
     var callingFriend = null;
+    var iceCandidatesQueue = [];
 
     var rtcConfig = {
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ]
     };
+
+    function unlockAudio() {
+      var remoteAudio = document.getElementById('remote-audio');
+      remoteAudio.play().catch(function(){});
+    }
+
+    function createPeerConnection() {
+      peerConnection = new RTCPeerConnection(rtcConfig);
+
+      peerConnection.ontrack = function(event) {
+        var remoteAudio = document.getElementById('remote-audio');
+        if (event.streams && event.streams[0]) {
+          remoteAudio.srcObject = event.streams[0];
+          remoteAudio.play().catch(function(e) {
+            console.log("Erreur lecture audio:", e);
+          });
+        }
+      };
+
+      peerConnection.onicecandidate = function(event) {
+        if (event.candidate && callingFriend) {
+          socket.emit('ice-candidate', { target: callingFriend, candidate: event.candidate });
+        }
+      };
+    }
+
+    function processIceCandidates() {
+      while (iceCandidatesQueue.length > 0) {
+        var cand = iceCandidatesQueue.shift();
+        peerConnection.addIceCandidate(new RTCIceCandidate(cand)).catch(function(e){});
+      }
+    }
 
     function startCall() {
       if (!currentFriend) {
@@ -742,39 +778,29 @@
         return;
       }
       if (!navigator.mediaDevices || !window.RTCPeerConnection) {
-        alert("Navigateur incompatible avec l'appel en direct WebRTC.");
+        alert("Navigateur incompatible avec l'appel WebRTC.");
         return;
       }
 
+      unlockAudio();
       callingFriend = currentFriend.toLowerCase();
       document.getElementById('call-bar').style.display = 'block';
       document.getElementById('call-status-text').textContent = 'Appel de ' + callingFriend + '...';
       document.getElementById('btn-accept-call').style.display = 'none';
 
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(function(stream) {
         localStream = stream;
-        peerConnection = new RTCPeerConnection(rtcConfig);
+        createPeerConnection();
 
         localStream.getTracks().forEach(function(track) {
           peerConnection.addTrack(track, localStream);
         });
 
-        peerConnection.ontrack = function(event) {
-          document.getElementById('remote-audio').srcObject = event.streams[0];
-        };
-
-        peerConnection.onicecandidate = function(event) {
-          if (event.candidate) {
-            socket.emit('ice-candidate', { target: callingFriend, candidate: event.candidate });
-          }
-        };
-
-        peerConnection.createOffer().then(function(offer) {
-          return peerConnection.setLocalDescription(offer);
-        }).then(function() {
-          socket.emit('call-user', { target: callingFriend, offer: peerConnection.localDescription });
-        });
-
+        return peerConnection.createOffer();
+      }).then(function(offer) {
+        return peerConnection.setLocalDescription(offer);
+      }).then(function() {
+        socket.emit('call-user', { target: callingFriend, offer: peerConnection.localDescription });
       }).catch(function(err) {
         alert("Erreur micro : " + err.message);
         endCall();
@@ -795,35 +821,26 @@
     });
 
     function acceptCall() {
+      unlockAudio();
       document.getElementById('btn-accept-call').style.display = 'none';
       document.getElementById('call-status-text').textContent = 'En communication avec ' + callingFriend;
 
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+      navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(function(stream) {
         localStream = stream;
-        peerConnection = new RTCPeerConnection(rtcConfig);
+        createPeerConnection();
 
         localStream.getTracks().forEach(function(track) {
           peerConnection.addTrack(track, localStream);
         });
 
-        peerConnection.ontrack = function(event) {
-          document.getElementById('remote-audio').srcObject = event.streams[0];
-        };
-
-        peerConnection.onicecandidate = function(event) {
-          if (event.candidate) {
-            socket.emit('ice-candidate', { target: callingFriend, candidate: event.candidate });
-          }
-        };
-
-        peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer)).then(function() {
-          return peerConnection.createAnswer();
-        }).then(function(answer) {
-          return peerConnection.setLocalDescription(answer);
-        }).then(function() {
-          socket.emit('answer-call', { target: callingFriend, answer: peerConnection.localDescription });
-        });
-
+        return peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+      }).then(function() {
+        processIceCandidates();
+        return peerConnection.createAnswer();
+      }).then(function(answer) {
+        return peerConnection.setLocalDescription(answer);
+      }).then(function() {
+        socket.emit('answer-call', { target: callingFriend, answer: peerConnection.localDescription });
       }).catch(function(err) {
         alert("Erreur micro : " + err.message);
         endCall();
@@ -832,14 +849,20 @@
 
     socket.on('call-answered', function(data) {
       document.getElementById('call-status-text').textContent = 'En communication avec ' + callingFriend;
-      if (peerConnection) {
-        peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+      if (peerConnection && data.answer) {
+        peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)).then(function() {
+          processIceCandidates();
+        });
       }
     });
 
     socket.on('ice-candidate', function(data) {
-      if (peerConnection && data.candidate) {
-        peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      if (data.candidate) {
+        if (peerConnection && peerConnection.remoteDescription) {
+          peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(function(e){});
+        } else {
+          iceCandidatesQueue.push(data.candidate);
+        }
       }
     });
 
@@ -856,6 +879,7 @@
 
     function closeCallBar() {
       document.getElementById('call-bar').style.display = 'none';
+      iceCandidatesQueue = [];
       if (localStream) {
         localStream.getTracks().forEach(function(track) { track.stop(); });
         localStream = null;
