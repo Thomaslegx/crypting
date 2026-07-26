@@ -221,13 +221,29 @@
     var messages = document.getElementById('messages');
     var fileInput = document.getElementById('file-input');
 
-    // Demande le nom dès le lancement du site (compatible iOS 7)
-    var userPrompt = prompt("Entrez votre nom/pseudo :", "");
-    if (userPrompt && userPrompt.trim() !== "") {
-      pseudo.value = userPrompt.trim();
+    // --- GESTION DU MEMORISATEUR DE PSEUDO (localStorage) ---
+    var savedName = localStorage.getItem('chat_username');
+
+    if (savedName) {
+      pseudo.value = savedName;
     } else {
-      pseudo.value = "Visiteur";
+      var userPrompt = prompt("Entrez votre nom/pseudo :", "");
+      if (userPrompt && userPrompt.trim() !== "") {
+        pseudo.value = userPrompt.trim();
+        localStorage.setItem('chat_username', pseudo.value);
+      } else {
+        pseudo.value = "Visiteur";
+        localStorage.setItem('chat_username', "Visiteur");
+      }
     }
+
+    // Met à jour la mémoire locale si l'utilisateur change son nom à la main dans le champ
+    pseudo.onchange = function() {
+      if (pseudo.value && pseudo.value.trim() !== "") {
+        localStorage.setItem('chat_username', pseudo.value.trim());
+      }
+    };
+    // ---------------------------------------------------------
 
     function compressAndSend(file) {
       var reader = new FileReader();
