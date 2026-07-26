@@ -82,7 +82,6 @@
       text-align: right;
     }
 
-    /* Style d'affichage des photos envoyées */
     .chat-img {
       max-width: 100%;
       height: auto;
@@ -125,7 +124,6 @@
       outline: none;
     }
 
-    /* Bouton d'ajout d'image */
     .btn-photo {
       background: #8e8e93;
       color: white;
@@ -155,7 +153,6 @@
       cursor: pointer;
     }
 
-    /* Input d'upload masqué */
     #file-input {
       display: none;
     }
@@ -171,7 +168,6 @@
     <input id="pseudo" placeholder="Nom" value="i4" maxlength="10" />
     <input id="input" autocomplete="off" placeholder="Message..." />
     
-    <!-- Bouton personnalisé pour la photo -->
     <label for="file-input" class="btn-photo">📷</label>
     <input type="file" id="file-input" accept="image/*">
 
@@ -187,7 +183,52 @@
     var messages = document.getElementById('messages');
     var fileInput = document.getElementById('file-input');
 
-    // Envoi d'un message texte
+    // Fonction de compression/redimensionnement d'image (Compatible ES5 / iOS 7)
+    function compressAndSend(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var ctx = canvas.getContext('2d');
+
+          // Dimension max de 800px pour préserver la RAM et la bande passante
+          var maxWidth = 800;
+          var maxHeight = 800;
+          var width = img.width;
+          var height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height *= maxWidth / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width *= maxHeight / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convertit l'image redimensionnée en JPEG léger (qualité 70%)
+          var compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+          // Envoi de l'image optimisée via WebSocket
+          socket.emit('chat message', {
+            user: pseudo.value || 'Anonyme',
+            text: null,
+            image: compressedBase64
+          });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
     form.onsubmit = function(e) {
       if (e && e.preventDefault) e.preventDefault();
       if (input.value) {
@@ -201,49 +242,35 @@
       return false;
     };
 
-    // Envoi d'une photo sélectionnée
     fileInput.onchange = function(e) {
       var file = e.target.files[0];
       if (file) {
-        var reader = new FileReader();
-        reader.onload = function(evt) {
-          socket.emit('chat message', {
-            user: pseudo.value || 'Anonyme',
-            text: null,
-            image: evt.target.result // Données de la photo en Base64
-          });
-          fileInput.value = ''; // Réinitialise l'input
-        };
-        reader.readAsDataURL(file);
+        compressAndSend(file);
+        fileInput.value = ''; 
       }
     };
 
-    // Réception du message (Texte ou Image)
     socket.on('chat message', function(data) {
       var item = document.createElement('li');
       var isMe = data.user === pseudo.value;
       
       item.className = isMe ? 'me' : 'other';
 
-      // Nom de l'expéditeur
       var nameSpan = document.createElement('span');
       nameSpan.className = 'sender-name';
       nameSpan.textContent = data.user;
       item.appendChild(nameSpan);
 
-      // Si c'est du texte
       if (data.text) {
         var textNode = document.createTextNode(data.text);
         item.appendChild(textNode);
       }
 
-      // Si c'est une image
       if (data.image) {
         var img = document.createElement('img');
         img.src = data.image;
         img.className = 'chat-img';
         
-        // Fait défiler une fois l'image chargée sur l'écran
         img.onload = function() {
           window.scrollTo(0, document.body.scrollHeight);
         };
