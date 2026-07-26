@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Chat Rétro</title>
   
   <style>
@@ -17,64 +17,87 @@
 
     body { 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-      background: #f2f2f7; 
-      color: #000;
+      background: #f4f4f9; 
+      color: #1c1c1e;
+      line-height: 1.3;
     }
 
+    /* En-tête style iOS Pro */
     #header { 
-      background: rgba(255, 255, 255, 0.95);
-      color: #1c1c1e; 
+      background: #ffffff;
+      color: #000000; 
       text-align: center; 
       padding: 14px 0; 
-      font-weight: 600; 
-      font-size: 17px;
+      font-weight: 700; 
+      font-size: 16px;
+      letter-spacing: -0.3px;
       position: fixed; 
       top: 0; 
       left: 0;
       right: 0;
       z-index: 10; 
-      border-bottom: 1px solid #d1d1d6;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
     }
 
+    #header .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: #34c759;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    /* Zone des messages */
     #messages { 
       list-style-type: none; 
-      margin: 60px 0 75px 0; 
-      padding: 12px; 
+      margin: 65px 0 80px 0; 
+      padding: 12px 14px; 
     }
 
     #messages li { 
       padding: 10px 14px; 
-      margin-bottom: 10px; 
+      margin-bottom: 8px; 
       background: #ffffff; 
-      border-radius: 18px; 
-      max-width: 75%; 
+      border-radius: 20px; 
+      max-width: 78%; 
       word-wrap: break-word; 
       clear: both;
       float: left;
-      color: #000;
+      color: #000000;
       font-size: 15px;
-      line-height: 1.4;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      position: relative;
     }
 
+    /* Bulles de l'expéditeur ("Moi") */
     #messages li.me { 
       background: #007aff; 
+      background: -webkit-linear-gradient(top, #0a84ff, #007aff);
+      background: linear-gradient(to bottom, #0a84ff, #007aff);
       color: #ffffff; 
       float: right;
-      border-bottom-right-radius: 4px;
+      border-bottom-right-radius: 5px;
+      box-shadow: 0 2px 6px rgba(0, 122, 255, 0.25);
     }
 
+    /* Bulles des autres utilisateurs */
     #messages li.other {
-      background: #e5e5ea;
-      border-bottom-left-radius: 4px;
+      background: #e9e9eb;
+      color: #000000;
+      float: left;
+      border-bottom-left-radius: 5px;
     }
 
     .sender-name {
       font-size: 11px;
       color: #8e8e93;
-      margin-bottom: 3px;
+      margin-bottom: 4px;
       display: block;
-      font-weight: 500;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2px;
     }
 
     #messages li.me .sender-name {
@@ -85,55 +108,63 @@
     .chat-img {
       max-width: 100%;
       height: auto;
-      border-radius: 12px;
-      margin-top: 4px;
+      border-radius: 14px;
+      margin-top: 5px;
       display: block;
+      border: 1px solid rgba(0,0,0,0.05);
     }
 
+    /* Barre d'envoi */
     #form { 
       position: fixed; 
       bottom: 0; 
       left: 0; 
       right: 0; 
-      padding: 8px 10px; 
-      background: rgba(249, 249, 249, 0.95); 
+      padding: 10px 12px; 
+      background: #ffffff; 
       display: flex; 
       align-items: center;
-      border-top: 1px solid #d1d1d6; 
+      border-top: 1px solid rgba(0, 0, 0, 0.08); 
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.03);
     }
 
     #pseudo { 
-      width: 60px; 
-      padding: 8px 6px; 
-      border: 1px solid #c7c7cc; 
-      border-radius: 18px; 
-      margin-right: 4px; 
+      width: 70px; 
+      padding: 9px 8px; 
+      border: 1px solid #d1d1d6; 
+      border-radius: 20px; 
+      margin-right: 6px; 
       font-size: 13px;
-      background: #fff;
+      background: #f2f2f7;
       text-align: center;
-      outline: none;
+      font-weight: 600;
+      color: #000;
     }
 
     #input { 
       flex: 1; 
-      padding: 8px 10px; 
-      border: 1px solid #c7c7cc; 
-      border-radius: 18px; 
-      font-size: 14px;
-      background: #fff;
-      outline: none;
+      padding: 9px 14px; 
+      border: 1px solid #d1d1d6; 
+      border-radius: 20px; 
+      font-size: 15px;
+      background: #f2f2f7;
+      color: #000;
+    }
+
+    #input:focus, #pseudo:focus {
+      border-color: #007aff;
+      background: #ffffff;
     }
 
     .btn-photo {
-      background: #8e8e93;
-      color: white;
+      background: #e9e9eb;
+      color: #007aff;
       border: none;
       border-radius: 50%;
-      width: 34px;
-      height: 34px;
-      font-weight: bold;
-      font-size: 18px;
-      margin-left: 4px;
+      width: 36px;
+      height: 36px;
+      font-size: 17px;
+      margin-left: 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -142,15 +173,20 @@
     }
 
     #btn { 
-      padding: 8px 12px; 
-      margin-left: 4px; 
+      padding: 9px 15px; 
+      margin-left: 6px; 
       background: #007aff; 
-      color: white; 
+      color: #ffffff; 
       border: none; 
-      border-radius: 18px; 
+      border-radius: 20px; 
       font-weight: 600; 
-      font-size: 13px;
+      font-size: 14px;
       cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0, 122, 255, 0.3);
+    }
+
+    #btn:active, .btn-photo:active {
+      opacity: 0.7;
     }
 
     #file-input {
@@ -160,12 +196,14 @@
 </head>
 <body>
 
-  <div id="header">Messagerie Rétro</div>
+  <div id="header">
+    <span class="status-dot"></span>Messagerie Rétro
+  </div>
 
   <ul id="messages"></ul>
 
   <form id="form" action="">
-    <input id="pseudo" placeholder="Nom" value="i4" maxlength="10" />
+    <input id="pseudo" placeholder="Nom" maxlength="10" />
     <input id="input" autocomplete="off" placeholder="Message..." />
     
     <label for="file-input" class="btn-photo">📷</label>
@@ -183,7 +221,14 @@
     var messages = document.getElementById('messages');
     var fileInput = document.getElementById('file-input');
 
-    // Compression et réduction de l'image (compatibilité ES5)
+    // Demande le nom dès le lancement du site (compatible iOS 7)
+    var userPrompt = prompt("Entrez votre nom/pseudo :", "");
+    if (userPrompt && userPrompt.trim() !== "") {
+      pseudo.value = userPrompt.trim();
+    } else {
+      pseudo.value = "Visiteur";
+    }
+
     function compressAndSend(file) {
       var reader = new FileReader();
       reader.onload = function(e) {
@@ -213,7 +258,6 @@
           canvas.height = height;
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Conversion en JPEG léger à 50% de qualité
           var compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
 
           socket.emit('chat message', {
