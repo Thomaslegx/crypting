@@ -2,19 +2,19 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 const path = require('path');
+
+// On augmente maxHttpBufferSize à 10 Mo (1e7 octets)
 const io = require('socket.io')(http, {
-  cors: { origin: "*" }
+  cors: { origin: "*" },
+  maxHttpBufferSize: 1e7
 });
 
-// Indique à Express de servir le dossier "public"
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Renvoie automatiquement public/index.html quand on accède à l'accueil
 app.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Gestion de la connexion Socket.IO
 io.on('connection', function(socket) {
   console.log('Un utilisateur s est connecte');
 
