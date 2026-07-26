@@ -19,12 +19,8 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
       background: #f2f2f7; 
       color: #000;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
     }
 
-    /* En-tête élégant */
     #header { 
       background: rgba(255, 255, 255, 0.95);
       color: #1c1c1e; 
@@ -40,12 +36,10 @@
       border-bottom: 1px solid #d1d1d6;
     }
 
-    /* Zone des messages */
     #messages { 
       list-style-type: none; 
-      margin: 60px 0 70px 0; 
+      margin: 60px 0 75px 0; 
       padding: 12px; 
-      overflow-y: auto;
     }
 
     #messages li { 
@@ -63,7 +57,6 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
 
-    /* Bulles utilisateur ("Moi") */
     #messages li.me { 
       background: #007aff; 
       color: #ffffff; 
@@ -71,7 +64,6 @@
       border-bottom-right-radius: 4px;
     }
 
-    /* Bulles des autres utilisateurs */
     #messages li.other {
       background: #e5e5ea;
       border-bottom-left-radius: 4px;
@@ -90,7 +82,15 @@
       text-align: right;
     }
 
-    /* Barre d'envoi en bas */
+    /* Style d'affichage des photos envoyées */
+    .chat-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      margin-top: 4px;
+      display: block;
+    }
+
     #form { 
       position: fixed; 
       bottom: 0; 
@@ -104,12 +104,12 @@
     }
 
     #pseudo { 
-      width: 75px; 
-      padding: 8px 10px; 
+      width: 60px; 
+      padding: 8px 6px; 
       border: 1px solid #c7c7cc; 
       border-radius: 18px; 
-      margin-right: 6px; 
-      font-size: 14px;
+      margin-right: 4px; 
+      font-size: 13px;
       background: #fff;
       text-align: center;
       outline: none;
@@ -117,7 +117,7 @@
 
     #input { 
       flex: 1; 
-      padding: 8px 12px; 
+      padding: 8px 10px; 
       border: 1px solid #c7c7cc; 
       border-radius: 18px; 
       font-size: 14px;
@@ -125,24 +125,39 @@
       outline: none;
     }
 
-    #input:focus, #pseudo:focus {
-      border-color: #007aff;
+    /* Bouton d'ajout d'image */
+    .btn-photo {
+      background: #8e8e93;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      font-weight: bold;
+      font-size: 18px;
+      margin-left: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
     }
 
     #btn { 
-      padding: 8px 14px; 
-      margin-left: 6px; 
+      padding: 8px 12px; 
+      margin-left: 4px; 
       background: #007aff; 
       color: white; 
       border: none; 
       border-radius: 18px; 
       font-weight: 600; 
-      font-size: 14px;
+      font-size: 13px;
       cursor: pointer;
     }
 
-    #btn:active {
-      opacity: 0.7;
+    /* Input d'upload masqué */
+    #file-input {
+      display: none;
     }
   </style>
 </head>
@@ -155,53 +170,93 @@
   <form id="form" action="">
     <input id="pseudo" placeholder="Nom" value="i4" maxlength="10" />
     <input id="input" autocomplete="off" placeholder="Message..." />
+    
+    <!-- Bouton personnalisé pour la photo -->
+    <label for="file-input" class="btn-photo">📷</label>
+    <input type="file" id="file-input" accept="image/*">
+
     <button id="btn" type="submit">Envoyer</button>
   </form>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Syntaxe ES5 stricte pour iOS 7.1.2
     var socket = io();
     var form = document.getElementById('form');
     var input = document.getElementById('input');
     var pseudo = document.getElementById('pseudo');
     var messages = document.getElementById('messages');
+    var fileInput = document.getElementById('file-input');
 
+    // Envoi d'un message texte
     form.onsubmit = function(e) {
       if (e && e.preventDefault) e.preventDefault();
       if (input.value) {
         socket.emit('chat message', {
           user: pseudo.value || 'Anonyme',
-          text: input.value
+          text: input.value,
+          image: null
         });
         input.value = '';
       }
       return false;
     };
 
+    // Envoi d'une photo sélectionnée
+    fileInput.onchange = function(e) {
+      var file = e.target.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          socket.emit('chat message', {
+            user: pseudo.value || 'Anonyme',
+            text: null,
+            image: evt.target.result // Données de la photo en Base64
+          });
+          fileInput.value = ''; // Réinitialise l'input
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    // Réception du message (Texte ou Image)
     socket.on('chat message', function(data) {
       var item = document.createElement('li');
       var isMe = data.user === pseudo.value;
       
       item.className = isMe ? 'me' : 'other';
 
-      // Affichage du nom de l'expéditeur au-dessus du message
+      // Nom de l'expéditeur
       var nameSpan = document.createElement('span');
       nameSpan.className = 'sender-name';
       nameSpan.textContent = data.user;
-      
-      var textNode = document.createTextNode(data.text);
-
       item.appendChild(nameSpan);
-      item.appendChild(textNode);
+
+      // Si c'est du texte
+      if (data.text) {
+        var textNode = document.createTextNode(data.text);
+        item.appendChild(textNode);
+      }
+
+      // Si c'est une image
+      if (data.image) {
+        var img = document.createElement('img');
+        img.src = data.image;
+        img.className = 'chat-img';
+        
+        // Fait défiler une fois l'image chargée sur l'écran
+        img.onload = function() {
+          window.scrollTo(0, document.body.scrollHeight);
+        };
+        
+        item.appendChild(img);
+      }
+
       messages.appendChild(item);
       
-      // Séparateur Float pour assurer l'empilement propre des bulles
       var clear = document.createElement('div');
       clear.style.clear = 'both';
       messages.appendChild(clear);
 
-      // Défilement automatique fluide vers le bas
       window.scrollTo(0, document.body.scrollHeight);
     });
   </script>
