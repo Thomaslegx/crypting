@@ -6,14 +6,15 @@ const io = require('socket.io')(http, {
   cors: { origin: "*" }
 });
 
-// Sert les fichiers statiques directement depuis le dossier racine
-app.use(express.static(__dirname));
+// Indique à Express de servir le dossier "public"
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Envoie index.html quand on arrive sur le site
+// Renvoie automatiquement public/index.html quand on accède à l'accueil
 app.get('/', function(req, res) {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Gestion de la connexion Socket.IO
 io.on('connection', function(socket) {
   console.log('Un utilisateur s est connecte');
 
