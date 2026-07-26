@@ -246,7 +246,7 @@
       display: block;
     }
 
-    /* --- BARRE DE SAISIE --- */
+    /* --- BARRE DE SAISIE SANS FORMULAIRE (OPTIMISÉE IPHONE 4) --- */
     #form-bar {
       height: 48px;
       padding: 0 8px;
@@ -293,7 +293,7 @@
 
     #file-input { display: none; }
 
-    /* BASCULE DE VUE */
+    /* BASCULE VUE NAVIGATION */
     body.in-chat #sidebar { display: none; }
     body.in-chat #chat-main { display: -webkit-box; display: flex; }
 
@@ -398,7 +398,7 @@
 </head>
 <body>
 
-  <!-- ÉCRAN 1 : LISTE DES CONTACTS -->
+  <!-- ÉCRAN 1 : CONTACTS -->
   <div id="sidebar">
     <div class="sidebar-header">
       <div class="brand">
@@ -422,14 +422,14 @@
 
     <div id="messages-container"></div>
 
-    <form id="form-bar" action="" onsubmit="return handleSend(event)">
+    <div id="form-bar">
       <button type="button" class="action-btn" onclick="openCamera()">📷</button>
       <label for="file-input" class="action-btn">📁</label>
       <input type="file" id="file-input" accept="image/*">
       
       <input id="input-message" autocomplete="off" placeholder="Message..." />
-      <button id="btn-send" type="submit">OK</button>
-    </form>
+      <button id="btn-send" type="button" onclick="triggerSend()">OK</button>
+    </div>
   </div>
 
   <!-- MODALE RÉGLAGES -->
@@ -465,15 +465,14 @@
       localStorage.setItem(key, JSON.stringify(value));
     }
 
-    // --- ENREGISTREMENT DU PSEUDO ---
+    // --- ENREGISTREMENT COMPATIBLE IOS 7 ---
     var myUsername = localStorage.getItem('crypting_username');
-    while (!myUsername || myUsername.trim() === '') {
+    while (!myUsername || myUsername.replace(/^\s+|\s+$/g, '') === '') {
       myUsername = prompt("Entre ton pseudo (ex: iphone4 ou pc) :");
     }
-    myUsername = myUsername.trim();
+    myUsername = myUsername.replace(/^\s+|\s+$/g, '');
     localStorage.setItem('crypting_username', myUsername);
 
-    // Enregistrement auprès du serveur
     socket.emit('register user', myUsername);
 
     var friends = getStoredData('crypting_friends', []);
@@ -490,19 +489,19 @@
     }
 
     function clearBrowserCache() {
-      if (confirm("Voulez-vous vraiment effacer tous les contacts et messages sauvegardés ?")) {
+      if (confirm("Effacer tous les contacts et messages sauvegardés ?")) {
         localStorage.clear();
         location.reload();
       }
     }
 
-    /* --- GESTION DES CONTACTS ET CHATS --- */
+    /* --- CONTACTS & CHATS --- */
     function renderFriendsList() {
       var listEl = document.getElementById('friends-list');
       listEl.innerHTML = '';
 
       if (friends.length === 0) {
-        listEl.innerHTML = '<div class="empty-state">Aucun ami ajouté.<br>Clique sur <b>"+ Ajouter"</b> pour commencer.</div>';
+        listEl.innerHTML = '<div class="empty-state">Aucun ami.<br>Clique sur <b>"+ Ajouter"</b> pour commencer.</div>';
         return;
       }
 
@@ -513,7 +512,7 @@
 
           var friendMsgs = chats[friendName] || [];
           var lastMsg = friendMsgs.length > 0 ? friendMsgs[friendMsgs.length - 1] : null;
-          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap reçu/envoyé' : lastMsg.text) : 'Nouvelle discussion';
+          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap' : lastMsg.text) : 'Nouvelle discussion';
 
           li.innerHTML = 
             '<div class="avatar">' + friendName.charAt(0).toUpperCase() + '</div>' +
@@ -533,13 +532,15 @@
 
     function addFriend() {
       var name = prompt("Nom exact de l'ami (ex: pc) :");
-      if (name && name.trim() !== "") {
-        var cleanName = name.trim();
-        if (friends.indexOf(cleanName) === -1) {
-          friends.push(cleanName);
-          setStoredData('crypting_friends', friends);
+      if (name) {
+        var cleanName = name.replace(/^\s+|\s+$/g, '');
+        if (cleanName !== "") {
+          if (friends.indexOf(cleanName) === -1) {
+            friends.push(cleanName);
+            setStoredData('crypting_friends', friends);
+          }
+          openChat(cleanName);
         }
-        openChat(cleanName);
       }
     }
 
@@ -593,6 +594,30 @@
       container.scrollTop = container.scrollHeight;
     }
 
+    /* --- SAISIE ET ENVOI (SANS FORMULAIRE / COMPATIBLE IOS 7) --- */
+    document.getElementById('input-message').onkeypress = function(e) {
+      e = e || window.event;
+      var charCode = e.keyCode || e.which;
+      if (charCode === 13) {
+        triggerSend();
+        return false;
+      }
+    };
+
+    function triggerSend() {
+      var input = document.getElementById('input-message');
+      var val = input.value;
+      
+      if (val) {
+        val = val.replace(/^\s+|\s+$/g, '');
+      }
+
+      if (val && val !== '') {
+        sendMessage(val, null);
+        input.value = '';
+      }
+    }
+
     function sendMessage(text, image) {
       if (!currentFriend) return;
 
@@ -607,33 +632,24 @@
 
       setStoredData('crypting_chats', chats);
 
-      // Envoi du message ciblé
-      socket.emit('chat message', {
-        sender: myUsername,
-        target: currentFriend,
-        text: text,
-        image: image
-      });
+      // Payload explicite pour compatibilité Socket.IO sous iOS 7
+      var payload = {
+        sender: String(myUsername),
+        target: String(currentFriend),
+        text: text ? String(text) : null,
+        image: image ? String(image) : null
+      };
+
+      socket.emit('chat message', payload);
 
       renderMessages();
     }
 
-    function handleSend(e) {
-      if (e && e.preventDefault) e.preventDefault();
-      var input = document.getElementById('input-message');
-      if (input.value.trim() !== '') {
-        sendMessage(input.value.trim(), null);
-        input.value = '';
-      }
-      return false;
-    }
-
-    // Réception des messages privés
+    // --- RÉCEPCION RÉSEAU ---
     socket.on('chat message', function(data) {
       var sender = data.sender;
       if (!sender) return;
 
-      // Ajouter automatiquement l'expéditeur aux contacts s'il n'existe pas
       if (friends.indexOf(sender) === -1) {
         friends.push(sender);
         setStoredData('crypting_friends', friends);
@@ -656,7 +672,6 @@
       renderFriendsList();
     });
 
-    // Rétablissement de l'enregistrement en cas de reconnexion Socket.io
     socket.on('connect', function() {
       if (myUsername) {
         socket.emit('register user', myUsername);
