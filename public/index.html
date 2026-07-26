@@ -1,5 +1,731 @@
-/* ==========================================================================
-       FONCTIONNALITÉ APPEL VOCAL EN CONTINU (WEBRTC) - CORRIGÉ
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=320, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <title>Crypting</title>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      color: #dedede;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    body {
+      display: -webkit-box;
+      display: flex;
+    }
+
+    /* --- SIDEBAR / LISTE CONTACTS --- */
+    #sidebar {
+      width: 100%;
+      height: 100%;
+      background-color: #121212;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-orient: vertical;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      height: 44px;
+      padding: 0 10px;
+      background-color: #181818;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      -webkit-box-pack: justify;
+      justify-content: space-between;
+      border-bottom: 1px solid #222;
+    }
+
+    .brand {
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 15px;
+      color: #fff;
+    }
+
+    .logo-ghost {
+      width: 26px;
+      height: 26px;
+      background-color: #fffc00;
+      border-radius: 50%;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      justify-content: center;
+      font-size: 14px;
+      margin-right: 8px;
+    }
+
+    .header-actions {
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+    }
+
+    .btn-settings {
+      background: none;
+      border: none;
+      font-size: 16px;
+      color: #aaa;
+      padding: 6px;
+      margin-right: 4px;
+      cursor: pointer;
+    }
+
+    .btn-add-friend {
+      background: #262626;
+      color: #fffc00;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .friends-list {
+      -webkit-box-flex: 1;
+      flex: 1;
+      overflow-y: auto;
+      list-style: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .friend-item {
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      padding: 12px 10px;
+      border-bottom: 1px solid #1a1a1a;
+      cursor: pointer;
+    }
+
+    .friend-item:active {
+      background-color: #1f1f1f;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      background-color: #fffc00;
+      color: #000;
+      border-radius: 50%;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    .friend-info {
+      -webkit-box-flex: 1;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .friend-name {
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .last-message {
+      font-size: 11px;
+      color: #777;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .empty-state {
+      padding: 30px 15px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+    }
+
+    /* --- ZONE CHAT --- */
+    #chat-main {
+      width: 100%;
+      height: 100%;
+      display: none;
+      -webkit-box-orient: vertical;
+      flex-direction: column;
+      background-color: #0b0b0b;
+    }
+
+    #chat-header {
+      height: 44px;
+      background-color: #121212;
+      padding: 0 10px;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      -webkit-box-pack: justify;
+      justify-content: space-between;
+      border-bottom: 1px solid #222;
+    }
+
+    .chat-header-user {
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+    }
+
+    .active-user-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .btn-call {
+      background: #222;
+      color: #fffc00;
+      border: 1px solid #333;
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* BANDEAU DE SIGNALEMENT D'APPEL WEBRTC */
+    #call-bar {
+      display: none;
+      background-color: #1c1c1e;
+      border-bottom: 1px solid #333;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .call-status {
+      font-size: 12px;
+      color: #fffc00;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .call-actions {
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-pack: center;
+      justify-content: center;
+    }
+
+    .btn-call-accept {
+      background: #34c759;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-weight: bold;
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    .btn-call-reject {
+      background: #ff3b30;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    #messages-container {
+      -webkit-box-flex: 1;
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .message-item {
+      margin-bottom: 8px;
+      clear: both;
+      max-width: 80%;
+    }
+
+    .message-item.me {
+      float: right;
+    }
+
+    .message-item.other {
+      float: left;
+    }
+
+    /* BULLES MES MESSAGES EN JAUNE */
+    .bubble {
+      padding: 8px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .me .bubble {
+      background-color: #fffc00;
+      color: #000;
+      font-weight: 500;
+    }
+
+    .other .bubble {
+      background-color: #222;
+      color: #fff;
+    }
+
+    .chat-img {
+      max-width: 180px;
+      border-radius: 8px;
+      margin-top: 4px;
+      border: 1px solid #333;
+      display: block;
+    }
+
+    /* --- BARRE DE SAISIE --- */
+    #form-bar {
+      height: 48px;
+      padding: 0 8px;
+      background-color: #121212;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      border-top: 1px solid #222;
+    }
+
+    #input-message {
+      -webkit-box-flex: 1;
+      flex: 1;
+      background-color: #1a1a1a;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 16px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+      margin: 0 4px;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: #888;
+      padding: 4px;
+      cursor: pointer;
+    }
+
+    #btn-send {
+      background-color: #fffc00;
+      color: #000;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 14px;
+      font-weight: bold;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    #file-input { display: none; }
+
+    /* BASCULE DE VUE */
+    body.in-chat #sidebar { display: none; }
+    body.in-chat #chat-main { display: -webkit-box; display: flex; }
+
+    /* MODALES */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+    }
+
+    #settings-modal {
+      text-align: center;
+      padding: 30px 15px;
+    }
+
+    .settings-box {
+      background: #181818;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 20px 15px;
+      margin-top: 40px;
+    }
+
+    .settings-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 15px;
+    }
+
+    .user-tag {
+      font-size: 12px;
+      color: #fffc00;
+      margin-bottom: 15px;
+    }
+
+    .btn-danger {
+      background-color: #ff3b30;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 14px;
+      font-weight: bold;
+      font-size: 12px;
+      width: 100%;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .btn-cancel {
+      background-color: #262626;
+      color: #aaa;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 14px;
+      font-size: 12px;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    #camera-modal {
+      text-align: center;
+      background: #000;
+    }
+
+    #video-preview {
+      width: 100%;
+      height: 360px;
+      object-fit: cover;
+      background: #111;
+    }
+
+    .camera-controls {
+      height: 120px;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      -webkit-box-pack: justify;
+      justify-content: space-around;
+    }
+
+    .btn-snap {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: transparent;
+    }
+
+    .btn-close-cam {
+      color: #fff;
+      background: #333;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ELEMENT RECEPTION AUDIO APPEL EN CONTINU -->
+  <audio id="remote-audio" autoplay></audio>
+
+  <!-- ÉCRAN 1 : LISTE DE CONTACTS -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="logo-ghost">👻</div>
+        <span>Crypting</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn-settings" onclick="openSettings()" title="Réglages">⚙️</button>
+        <button class="btn-add-friend" onclick="addFriend()">+ Ajouter</button>
+      </div>
+    </div>
+    <ul class="friends-list" id="friends-list"></ul>
+  </div>
+
+  <!-- ÉCRAN 2 : CONVERSATION -->
+  <div id="chat-main">
+    <div id="chat-header">
+      <div class="chat-header-user">
+        <button class="action-btn" onclick="closeChat()" style="margin-right:8px;">←</button>
+        <span class="active-user-title" id="active-user-title">Discussion</span>
+      </div>
+      <button class="btn-call" onclick="startCall()">📞 Appeler</button>
+    </div>
+
+    <!-- BANDEAU D'APPEL WEBRTC -->
+    <div id="call-bar">
+      <div class="call-status" id="call-status-text">Appel en cours...</div>
+      <div class="call-actions">
+        <button class="btn-call-accept" id="btn-accept-call" onclick="acceptCall()" style="display:none;">Décrocher</button>
+        <button class="btn-call-reject" onclick="endCall()">Raccrocher</button>
+      </div>
+    </div>
+
+    <div id="messages-container"></div>
+
+    <div id="form-bar">
+      <button type="button" class="action-btn" onclick="openCamera()">📷</button>
+      <label for="file-input" class="action-btn">📁</label>
+      <input type="file" id="file-input" accept="image/*">
+
+      <input id="input-message" autocomplete="off" placeholder="Message..." />
+      <button id="btn-send" type="button" onclick="triggerSend()">OK</button>
+    </div>
+  </div>
+
+  <!-- MODALE RÉGLAGES -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="settings-box">
+      <div class="settings-title">Réglages</div>
+      <div class="user-tag" id="my-username-display">Mon pseudo : -</div>
+      <button class="btn-danger" onclick="clearBrowserCache()">🗑️ Effacer le cache du navigateur</button>
+      <button class="btn-cancel" onclick="closeSettings()">Fermer</button>
+    </div>
+  </div>
+
+  <!-- MODALE CAMÉRA -->
+  <div id="camera-modal" class="modal-overlay">
+    <video id="video-preview" autoplay playsinline></video>
+    <div class="camera-controls">
+      <button class="btn-close-cam" onclick="closeCamera()">Annuler</button>
+      <button class="btn-snap" onclick="takeSnap()"></button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io();
+    var currentFriend = null;
+
+    function getStoredData(key, fallback) {
+      var data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : fallback;
+    }
+
+    function setStoredData(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    var myUsername = localStorage.getItem('crypting_username');
+    while (!myUsername || myUsername.replace(/^\s+|\s+$/g, '') === '') {
+      myUsername = prompt("Entre ton pseudo (ex: iphone4 ou pc) :");
+    }
+    myUsername = myUsername.replace(/^\s+|\s+$/g, '').toLowerCase();
+    localStorage.setItem('crypting_username', myUsername);
+
+    socket.emit('register user', myUsername);
+
+    var friends = getStoredData('crypting_friends', []);
+    var chats = getStoredData('crypting_chats', {});
+
+    /* --- RÉGLAGES --- */
+    function openSettings() {
+      document.getElementById('my-username-display').textContent = 'Mon pseudo : ' + myUsername;
+      document.getElementById('settings-modal').style.display = 'block';
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-modal').style.display = 'none';
+    }
+
+    function clearBrowserCache() {
+      if (confirm("Effacer tous les contacts et messages sauvegardés ?")) {
+        localStorage.clear();
+        location.reload();
+      }
+    }
+
+    /* --- CONTACTS ET CHAT --- */
+    function renderFriendsList() {
+      var listEl = document.getElementById('friends-list');
+      listEl.innerHTML = '';
+
+      if (friends.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">Aucun ami.<br>Clique sur <b>"+ Ajouter"</b> pour commencer.</div>';
+        return;
+      }
+
+      for (var i = 0; i < friends.length; i++) {
+        (function(friendName) {
+          var li = document.createElement('li');
+          li.className = 'friend-item';
+
+          var friendMsgs = chats[friendName] || [];
+          var lastMsg = friendMsgs.length > 0 ? friendMsgs[friendMsgs.length - 1] : null;
+          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap' : lastMsg.text) : 'Nouvelle discussion';
+
+          li.innerHTML = 
+            '<div class="avatar">' + friendName.charAt(0).toUpperCase() + '</div>' +
+            '<div class="friend-info">' +
+              '<div class="friend-name">' + friendName + '</div>' +
+              '<div class="last-message">' + lastText + '</div>' +
+            '</div>';
+
+          li.onclick = function() {
+            openChat(friendName);
+          };
+
+          listEl.appendChild(li);
+        })(friends[i]);
+      }
+    }
+
+    function addFriend() {
+      var name = prompt("Nom exact de l'ami (ex: pc) :");
+      if (name) {
+        var cleanName = name.replace(/^\s+|\s+$/g, '').toLowerCase();
+        if (cleanName !== "") {
+          if (friends.indexOf(cleanName) === -1) {
+            friends.push(cleanName);
+            setStoredData('crypting_friends', friends);
+          }
+          openChat(cleanName);
+        }
+      }
+    }
+
+    function openChat(friendName) {
+      currentFriend = friendName.toLowerCase();
+      document.getElementById('active-user-title').textContent = currentFriend;
+      document.body.className = 'in-chat';
+      renderMessages();
+    }
+
+    function closeChat() {
+      document.body.className = '';
+      currentFriend = null;
+      renderFriendsList();
+    }
+
+    function renderMessages() {
+      var container = document.getElementById('messages-container');
+      container.innerHTML = '';
+
+      if (!currentFriend) return;
+
+      var msgs = chats[currentFriend] || [];
+
+      for (var i = 0; i < msgs.length; i++) {
+        var msg = msgs[i];
+        var div = document.createElement('div');
+        div.className = 'message-item ' + (msg.sender === 'me' ? 'me' : 'other');
+
+        if (msg.text) {
+          var bubble = document.createElement('div');
+          bubble.className = 'bubble';
+          bubble.textContent = msg.text;
+          div.appendChild(bubble);
+        }
+
+        if (msg.image) {
+          var img = document.createElement('img');
+          img.src = msg.image;
+          img.className = 'chat-img';
+          div.appendChild(img);
+        }
+
+        container.appendChild(div);
+      }
+
+      var clearDiv = document.createElement('div');
+      clearDiv.style.clear = 'both';
+      container.appendChild(clearDiv);
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    /* --- SAISIE ET ENVOI --- */
+    document.getElementById('input-message').onkeypress = function(e) {
+      e = e || window.event;
+      var charCode = e.keyCode || e.which;
+      if (charCode === 13) {
+        triggerSend();
+        return false;
+      }
+    };
+
+    function triggerSend() {
+      var input = document.getElementById('input-message');
+      var val = input.value;
+      
+      if (val) {
+        val = val.replace(/^\s+|\s+$/g, '');
+      }
+
+      if (val && val !== '') {
+        sendMessage(val, null);
+        input.value = '';
+      }
+    }
+
+    function sendMessage(text, image) {
+      if (!currentFriend) return;
+
+      if (!chats[currentFriend]) chats[currentFriend] = [];
+
+      chats[currentFriend].push({
+        sender: 'me',
+        text: text,
+        image: image,
+        timestamp: new Date().getTime()
+      });
+
+      setStoredData('crypting_chats', chats);
+
+      var payload = {
+        sender: String(myUsername),
+        target: String(currentFriend),
+        text: text ? String(text) : null,
+        image: image ? String(image) : null
+      };
+
+      socket.emit('chat message', payload);
+
+      renderMessages();
+    }
+
+    /* ==========================================================================
+       APPELS VOCAUX WEBRTC EN CONTINU
        ========================================================================== */
     var peerConnection = null;
     var localStream = null;
@@ -12,16 +738,15 @@
 
     function startCall() {
       if (!currentFriend) {
-        alert("Sélectionne une discussion d'abord.");
+        alert("Sélectionne un ami à appeler.");
         return;
       }
       if (!navigator.mediaDevices || !window.RTCPeerConnection) {
-        alert("Les appels en direct ne sont pas supportés sur ce navigateur/appareil.");
+        alert("Navigateur incompatible avec l'appel en direct WebRTC.");
         return;
       }
 
       callingFriend = currentFriend.toLowerCase();
-      
       document.getElementById('call-bar').style.display = 'block';
       document.getElementById('call-status-text').textContent = 'Appel de ' + callingFriend + '...';
       document.getElementById('btn-accept-call').style.display = 'none';
@@ -51,25 +776,20 @@
         });
 
       }).catch(function(err) {
-        alert("Micro inaccessible : " + err.message);
+        alert("Erreur micro : " + err.message);
         endCall();
       });
     }
 
-    // RÉCEPTION DE L'APPEL ENTRANT (CORRECTION BANNIÈRE)
     socket.on('incoming-call', function(data) {
       callingFriend = String(data.from).toLowerCase();
       incomingOffer = data.offer;
 
-      // Si la personne n'est pas dans l'écran de chat, on ouvre la discussion
-      if (!currentFriend || currentFriend.toLowerCase() !== callingFriend) {
+      if (!currentFriend || currentFriend !== callingFriend) {
         openChat(callingFriend);
       }
 
-      // Affichage de la bannière
-      var callBar = document.getElementById('call-bar');
-      callBar.style.display = 'block';
-      
+      document.getElementById('call-bar').style.display = 'block';
       document.getElementById('call-status-text').textContent = '📞 Appel entrant de ' + callingFriend;
       document.getElementById('btn-accept-call').style.display = 'inline-block';
     });
@@ -98,7 +818,7 @@
 
         peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer)).then(function() {
           return peerConnection.createAnswer();
-        }).then(function() {
+        }).then(function(answer) {
           return peerConnection.setLocalDescription(answer);
         }).then(function() {
           socket.emit('answer-call', { target: callingFriend, answer: peerConnection.localDescription });
@@ -146,3 +866,103 @@
       }
       callingFriend = null;
     }
+
+    /* --- ENVOI CHAT RÉSEAU --- */
+    socket.on('chat message', function(data) {
+      var sender = data.sender;
+      if (!sender) return;
+
+      if (friends.indexOf(sender) === -1) {
+        friends.push(sender);
+        setStoredData('crypting_friends', friends);
+      }
+
+      if (!chats[sender]) chats[sender] = [];
+
+      chats[sender].push({
+        sender: 'other',
+        text: data.text,
+        image: data.image,
+        timestamp: new Date().getTime()
+      });
+
+      setStoredData('crypting_chats', chats);
+
+      if (currentFriend === sender) {
+        renderMessages();
+      }
+      renderFriendsList();
+    });
+
+    socket.on('connect', function() {
+      if (myUsername) {
+        socket.emit('register user', myUsername);
+      }
+    });
+
+    /* --- TRANSMISSION PHOTO --- */
+    document.getElementById('file-input').onchange = function(e) {
+      var file = e.target.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          var img = new Image();
+          img.onload = function() {
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            var maxDim = 480;
+            var w = img.width, h = img.height;
+
+            if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+            else if (h > maxDim) { w = Math.round(w * (maxDim / h)); h = maxDim; }
+
+            canvas.width = w; canvas.height = h;
+            ctx.drawImage(img, 0, 0, w, h);
+
+            sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
+          };
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    /* --- CAMÉRA --- */
+    var mediaStream = null;
+    function openCamera() {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
+          mediaStream = stream;
+          document.getElementById('video-preview').srcObject = stream;
+          document.getElementById('camera-modal').style.display = 'block';
+        }).catch(function() {
+          alert("Caméra non disponible.");
+        });
+      } else {
+        alert("Utilise l'icône dossier 📁 pour sélectionner une photo.");
+      }
+    }
+
+    function closeCamera() {
+      if (mediaStream && mediaStream.getTracks) {
+        var tracks = mediaStream.getTracks();
+        for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+      }
+      document.getElementById('camera-modal').style.display = 'none';
+    }
+
+    function takeSnap() {
+      var video = document.getElementById('video-preview');
+      var canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 360;
+      canvas.getContext('2d').drawImage(video, 0, 0, 320, 360);
+
+      sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
+      closeCamera();
+    }
+
+    renderFriendsList();
+  </script>
+</body>
+</html>
