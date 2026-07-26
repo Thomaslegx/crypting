@@ -183,7 +183,7 @@
     var messages = document.getElementById('messages');
     var fileInput = document.getElementById('file-input');
 
-    // Fonction de compression/redimensionnement d'image (Compatible ES5 / iOS 7)
+    // Compression et réduction de l'image (compatibilité ES5)
     function compressAndSend(file) {
       var reader = new FileReader();
       reader.onload = function(e) {
@@ -192,9 +192,8 @@
           var canvas = document.createElement('canvas');
           var ctx = canvas.getContext('2d');
 
-          // Dimension max de 800px pour préserver la RAM et la bande passante
-          var maxWidth = 800;
-          var maxHeight = 800;
+          var maxWidth = 600;
+          var maxHeight = 600;
           var width = img.width;
           var height = img.height;
 
@@ -214,10 +213,9 @@
           canvas.height = height;
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Convertit l'image redimensionnée en JPEG léger (qualité 70%)
-          var compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          // Conversion en JPEG léger à 50% de qualité
+          var compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
 
-          // Envoi de l'image optimisée via WebSocket
           socket.emit('chat message', {
             user: pseudo.value || 'Anonyme',
             text: null,
