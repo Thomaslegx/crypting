@@ -3,7 +3,6 @@
   const socket = io();
   let currentFriend = null;
 
-  // Gestion du LocalStorage optimisée
   const getStoredData = (key, fallback) => {
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : fallback;
@@ -13,7 +12,6 @@
     localStorage.setItem(key, JSON.stringify(value));
   };
 
-  // Initialisation et normalisation stricte du pseudo
   let myUsername = localStorage.getItem('crypting_username');
   while (!myUsername || !myUsername.trim()) {
     myUsername = prompt("Entre ton pseudo (ex: iphone16, pc) :");
@@ -26,7 +24,6 @@
   let friends = getStoredData('crypting_friends', []);
   let chats = getStoredData('crypting_chats', {});
 
-  // Gestion des modales et réglages
   const openSettings = () => {
     document.getElementById('my-username-display').textContent = `Mon pseudo : ${myUsername}`;
     document.getElementById('settings-modal').style.display = 'flex';
@@ -43,7 +40,6 @@
     }
   };
 
-  // Affichage dynamique de la liste des contacts
   const renderFriendsList = () => {
     const listEl = document.getElementById('friends-list');
     listEl.innerHTML = '';
@@ -58,7 +54,8 @@
       li.className = 'friend-item';
 
       const friendMsgs = chats[friendName] || [];
-      const lastMsg = friendMsgs.at(-1); // Syntaxe moderne ES2022
+      // Correction compatible 100% navigateurs modernes
+      const lastMsg = friendMsgs.length > 0 ? friendMsgs[friendMsgs.length - 1] : null;
       const lastText = lastMsg ? (lastMsg.image ? '📷 Snap' : lastMsg.text) : 'Nouvelle discussion';
 
       li.innerHTML = `
@@ -103,7 +100,6 @@
     renderFriendsList();
   };
 
-  // Rendu des messages de la conversation active
   const renderMessages = () => {
     const container = document.getElementById('messages-container');
     container.innerHTML = '';
@@ -136,7 +132,6 @@
     container.scrollTop = container.scrollHeight;
   };
 
-  // Envoi de messages texte
   document.getElementById('input-message').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       triggerSend();
@@ -180,7 +175,7 @@
     renderFriendsList();
   };
 
-  // ==================== WEBRTC (APPELS AUDIO) ====================
+  // WEBRTC (APPELS AUDIO)
   let peerConnection = null;
   let localStream = null;
   let incomingOffer = null;
@@ -337,7 +332,6 @@
     callingFriend = null;
   };
 
-  // Réception des messages via Socket.io
   socket.on('chat message', (data) => {
     const sender = data.sender.toLowerCase();
     if (!sender) return;
@@ -370,7 +364,7 @@
     }
   });
 
-  // ==================== GESTION DES IMAGES ET CAMÉRA ====================
+  // GESTION DES IMAGES ET CAMÉRA
   document.getElementById('file-input').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -380,7 +374,7 @@
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
-          const maxDim = 800; // Haute définition moderne
+          const maxDim = 800; 
           let w = img.width, h = img.height;
 
           if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
