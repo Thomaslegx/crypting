@@ -79,11 +79,28 @@
       margin-right: 8px;
     }
 
+    .header-actions {
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+    }
+
+    .btn-settings {
+      background: none;
+      border: none;
+      font-size: 16px;
+      color: #aaa;
+      padding: 6px;
+      margin-right: 4px;
+      cursor: pointer;
+    }
+
     .btn-add-friend {
       background: #262626;
       color: #fffc00;
       border: none;
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 12px;
       font-size: 11px;
       font-weight: bold;
@@ -229,7 +246,7 @@
       display: block;
     }
 
-    /* --- BARRE DE SAISIE COMPACTE --- */
+    /* --- BARRE DE SAISIE --- */
     #form-bar {
       height: 48px;
       padding: 0 8px;
@@ -280,14 +297,68 @@
     body.in-chat #sidebar { display: none; }
     body.in-chat #chat-main { display: -webkit-box; display: flex; }
 
-    /* --- CAMÉRA MODALE --- */
-    #camera-modal {
+    /* --- MODALES --- */
+    .modal-overlay {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: #000;
+      background: rgba(0, 0, 0, 0.85);
       z-index: 100;
+    }
+
+    #settings-modal {
       text-align: center;
+      padding: 30px 15px;
+    }
+
+    .settings-box {
+      background: #181818;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 20px 15px;
+      margin-top: 40px;
+    }
+
+    .settings-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 15px;
+    }
+
+    .user-tag {
+      font-size: 12px;
+      color: #fffc00;
+      margin-bottom: 15px;
+    }
+
+    .btn-danger {
+      background-color: #ff3b30;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 14px;
+      font-weight: bold;
+      font-size: 12px;
+      width: 100%;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+
+    .btn-cancel {
+      background-color: #262626;
+      color: #aaa;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 14px;
+      font-size: 12px;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    #camera-modal {
+      text-align: center;
+      background: #000;
     }
 
     #video-preview {
@@ -334,7 +405,10 @@
         <div class="logo-ghost">👻</div>
         <span>Crypting</span>
       </div>
-      <button class="btn-add-friend" onclick="addFriend()">+ Ajouter</button>
+      <div class="header-actions">
+        <button class="btn-settings" onclick="openSettings()" title="Réglages">⚙️</button>
+        <button class="btn-add-friend" onclick="addFriend()">+ Ajouter</button>
+      </div>
     </div>
     <ul class="friends-list" id="friends-list"></ul>
   </div>
@@ -358,8 +432,18 @@
     </form>
   </div>
 
-  <!-- ÉCRAN 3 : CAMÉRA -->
-  <div id="camera-modal">
+  <!-- MODALE RÉGLAGES -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="settings-box">
+      <div class="settings-title">Réglages</div>
+      <div class="user-tag" id="my-username-display">Mon pseudo : -</div>
+      <button class="btn-danger" onclick="clearBrowserCache()">🗑️ Effacer le cache du navigateur</button>
+      <button class="btn-cancel" onclick="closeSettings()">Fermer</button>
+    </div>
+  </div>
+
+  <!-- MODALE CAMÉRA -->
+  <div id="camera-modal" class="modal-overlay">
     <video id="video-preview" autoplay playsinline></video>
     <div class="camera-controls">
       <button class="btn-close-cam" onclick="closeCamera()">Annuler</button>
@@ -381,10 +465,38 @@
       localStorage.setItem(key, JSON.stringify(value));
     }
 
-    // Liste vide par défaut (Alex et Sophie supprimés)
+    // --- ENREGISTREMENT DU PSEUDO ---
+    var myUsername = localStorage.getItem('crypting_username');
+    while (!myUsername || myUsername.trim() === '') {
+      myUsername = prompt("Entre ton pseudo (ex: iphone4 ou pc) :");
+    }
+    myUsername = myUsername.trim();
+    localStorage.setItem('crypting_username', myUsername);
+
+    // Enregistrement auprès du serveur
+    socket.emit('register user', myUsername);
+
     var friends = getStoredData('crypting_friends', []);
     var chats = getStoredData('crypting_chats', {});
 
+    /* --- RÉGLAGES --- */
+    function openSettings() {
+      document.getElementById('my-username-display').textContent = 'Mon pseudo : ' + myUsername;
+      document.getElementById('settings-modal').style.display = 'block';
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-modal').style.display = 'none';
+    }
+
+    function clearBrowserCache() {
+      if (confirm("Voulez-vous vraiment effacer tous les contacts et messages sauvegardés ?")) {
+        localStorage.clear();
+        location.reload();
+      }
+    }
+
+    /* --- GESTION DES CONTACTS ET CHATS --- */
     function renderFriendsList() {
       var listEl = document.getElementById('friends-list');
       listEl.innerHTML = '';
@@ -401,7 +513,7 @@
 
           var friendMsgs = chats[friendName] || [];
           var lastMsg = friendMsgs.length > 0 ? friendMsgs[friendMsgs.length - 1] : null;
-          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap envoyé/reçu' : lastMsg.text) : 'Nouvelle discussion';
+          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap reçu/envoyé' : lastMsg.text) : 'Nouvelle discussion';
 
           li.innerHTML = 
             '<div class="avatar">' + friendName.charAt(0).toUpperCase() + '</div>' +
@@ -420,7 +532,7 @@
     }
 
     function addFriend() {
-      var name = prompt("Nom ou pseudo de l'ami :");
+      var name = prompt("Nom exact de l'ami (ex: pc) :");
       if (name && name.trim() !== "") {
         var cleanName = name.trim();
         if (friends.indexOf(cleanName) === -1) {
@@ -495,7 +607,9 @@
 
       setStoredData('crypting_chats', chats);
 
+      // Envoi du message ciblé
       socket.emit('chat message', {
+        sender: myUsername,
         target: currentFriend,
         text: text,
         image: image
@@ -514,8 +628,17 @@
       return false;
     }
 
+    // Réception des messages privés
     socket.on('chat message', function(data) {
-      var sender = data.sender || currentFriend || 'Ami';
+      var sender = data.sender;
+      if (!sender) return;
+
+      // Ajouter automatiquement l'expéditeur aux contacts s'il n'existe pas
+      if (friends.indexOf(sender) === -1) {
+        friends.push(sender);
+        setStoredData('crypting_friends', friends);
+      }
+
       if (!chats[sender]) chats[sender] = [];
 
       chats[sender].push({
@@ -531,6 +654,13 @@
         renderMessages();
       }
       renderFriendsList();
+    });
+
+    // Rétablissement de l'enregistrement en cas de reconnexion Socket.io
+    socket.on('connect', function() {
+      if (myUsername) {
+        socket.emit('register user', myUsername);
+      }
     });
 
     // --- ENVOI FICHIER ---
