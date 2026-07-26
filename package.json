@@ -1,7 +1,7 @@
 {
   "name": "messagerie-retro",
   "version": "1.0.0",
-  "description": "Chat compatible iOS 7 et iOS modernes",
+  "description": "Application de messagerie compatible iOS 7 et appareils récents",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
