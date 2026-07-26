@@ -228,11 +228,14 @@
       word-break: break-word;
     }
 
+    /* BULLES MES MESSAGES : JAUNE SNAPCHAT */
     .me .bubble {
-      background-color: #0084ff;
-      color: #fff;
+      background-color: #fffc00;
+      color: #000;
+      font-weight: 500;
     }
 
+    /* BULLES AUTRES : GRIS FONCÉ */
     .other .bubble {
       background-color: #222;
       color: #fff;
@@ -246,7 +249,7 @@
       display: block;
     }
 
-    /* --- BARRE DE SAISIE SANS FORMULAIRE (OPTIMISÉE IPHONE 4) --- */
+    /* --- BARRE DE SAISIE --- */
     #form-bar {
       height: 48px;
       padding: 0 8px;
@@ -465,7 +468,6 @@
       localStorage.setItem(key, JSON.stringify(value));
     }
 
-    // --- ENREGISTREMENT COMPATIBLE IOS 7 ---
     var myUsername = localStorage.getItem('crypting_username');
     while (!myUsername || myUsername.replace(/^\s+|\s+$/g, '') === '') {
       myUsername = prompt("Entre ton pseudo (ex: iphone4 ou pc) :");
@@ -594,7 +596,7 @@
       container.scrollTop = container.scrollHeight;
     }
 
-    /* --- SAISIE ET ENVOI (SANS FORMULAIRE / COMPATIBLE IOS 7) --- */
+    /* --- SAISIE ET ENVOI --- */
     document.getElementById('input-message').onkeypress = function(e) {
       e = e || window.event;
       var charCode = e.keyCode || e.which;
@@ -632,7 +634,6 @@
 
       setStoredData('crypting_chats', chats);
 
-      // Payload explicite pour compatibilité Socket.IO sous iOS 7
       var payload = {
         sender: String(myUsername),
         target: String(currentFriend),
@@ -645,7 +646,7 @@
       renderMessages();
     }
 
-    // --- RÉCEPCION RÉSEAU ---
+    // --- RÉCEPTION RÉSEAU ---
     socket.on('chat message', function(data) {
       var sender = data.sender;
       if (!sender) return;
