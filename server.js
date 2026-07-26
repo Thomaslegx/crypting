@@ -1,56 +1,30 @@
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 
-  // Demander le pseudo s'il n'existe pas
-  let myUsername = localStorage.getItem('chat_username');
-  while (!myUsername || !myUsername.trim()) {
-    myUsername = prompt("Entre ton pseudo :");
-  }
-  myUsername = myUsername.trim();
-  localStorage.setItem('chat_username', myUsername);
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-  // Enregistrer l'utilisateur auprès du serveur
-  socket.emit('register user', myUsername);
+app.use(express.static('public'));
 
-  // Gestion de l'envoi de message
-  const sendMessage = () => {
-    const input = document.getElementById('input-message');
-    const text = input.value.trim();
+io.on('connection', (socket) => {
+  console.log('Un utilisateur est connecté');
 
-    if (text) {
-      // Afficher son propre message localement
-      appendMessage('Me', text, 'me');
-
-      // Envoyer au serveur
-      socket.emit('chat message', { sender: myUsername, text: text });
-
-      input.value = '';
-    }
-  };
-
-  // Écouter la touche Entrée
-  document.getElementById('input-message').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      sendMessage();
-    }
+  socket.on('register user', (username) => {
+    socket.username = username;
   });
 
-  // Recevoir un message du serveur
   socket.on('chat message', (data) => {
-    appendMessage(data.sender, data.text, 'other');
+    socket.broadcast.emit('chat message', data);
   });
 
-  // Fonction utilitaire pour ajouter un message dans le conteneur HTML
-  const appendMessage = (sender, text, type) => {
-    const container = document.getElementById('messages-container');
-    if (!container) return;
+  socket.on('disconnect', () => {
+    console.log('Utilisateur déconnecté');
+  });
+});
 
-    const div = document.createElement('div');
-    div.className = `message-item ${type}`;
-    div.innerHTML = `<div class="bubble"><b>${sender}:</b> ${text}</div>`;
-    
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-  };
-</script>
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Serveur en écoute sur le port ${PORT}`);
+});
