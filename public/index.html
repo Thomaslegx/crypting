@@ -2,7 +2,6 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <!-- viewport-fit=cover est indispensable pour l'iPhone X à 16 (Dynamic Island & Encoches) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -50,7 +49,6 @@
 
     .sidebar-header {
       min-height: 44px;
-      /* Adaptation iPhone 10 à 16 pour ne pas être sous la Dynamic Island */
       padding-top: constant(safe-area-inset-top);
       padding-top: env(safe-area-inset-top);
       padding-left: 12px;
@@ -382,15 +380,57 @@
 
     #file-input { display: none; }
 
+    /* ==========================================================================
+       CORRECTIF SPÉCIFIQUE IPHONE 4 / 4S (Écran 320x480 px)
+       ========================================================================== */
+    @media screen and (max-width: 320px) and (max-height: 480px) {
+      html, body {
+        font-size: 11px !important;
+      }
+      .sidebar-header, #chat-header {
+        min-height: 36px !important;
+        padding-top: 0 !important;
+      }
+      .brand {
+        font-size: 13px !important;
+      }
+      .logo-ghost {
+        width: 20px !important;
+        height: 20px !important;
+        font-size: 11px !important;
+        margin-right: 4px !important;
+      }
+      .friend-item {
+        padding: 6px 8px !important;
+      }
+      .avatar {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 11px !important;
+        margin-right: 6px !important;
+      }
+      #form-bar {
+        min-height: 38px !important;
+      }
+      #input-message {
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+      }
+      .bubble {
+        padding: 6px 10px !important;
+        font-size: 11px !important;
+      }
+      .chat-img {
+        max-width: 120px !important;
+      }
+    }
+
     /* --- GESTION ADAPTATIVE (MOBILE VS PC) --- */
-    
-    /* Par défaut (Mobile / iPhone 4 / iPhone 16) : bascule sur le chat au clic */
     @media (max-width: 767px) {
       body.in-chat #sidebar { display: none; }
       body.in-chat #chat-main { display: -webkit-box; display: flex; }
     }
 
-    /* Écrans PC / Tablette (> 768px) : Affichage en 2 colonnes simultanées ! */
     @media (min-width: 768px) {
       #sidebar {
         width: 320px;
@@ -404,15 +444,13 @@
         -webkit-box-flex: 1;
         flex: 1;
       }
-      .btn-back { display: none !important; } /* Inutile de revenir en arrière sur PC */
+      .btn-back { display: none !important; }
       
-      /* Effets souris uniquement pour PC */
       .friend-item:hover { background-color: #1a1a1a; }
       .btn-call:hover { background-color: #333; }
       .btn-add-friend:hover { background-color: #333; }
       #btn-send:hover { background-color: #e6e300; }
       
-      /* Messages plus confortables sur grand écran */
       .message-item { max-width: 60%; }
       .chat-img { max-width: 260px; }
     }
@@ -528,7 +566,6 @@
 
   <audio id="remote-audio" autoplay playsinline></audio>
 
-  <!-- ÉCRAN 1 : CONTACTS (A gauche sur PC, plein écran sur Mobile) -->
   <div id="sidebar">
     <div class="sidebar-header">
       <div class="brand">
@@ -543,7 +580,6 @@
     <ul class="friends-list" id="friends-list"></ul>
   </div>
 
-  <!-- ÉCRAN 2 : CHAT (A droite sur PC, plein écran sur Mobile) -->
   <div id="chat-main">
     <div id="chat-header">
       <div class="chat-header-user">
@@ -573,7 +609,6 @@
     </div>
   </div>
 
-  <!-- RÉGLAGES -->
   <div id="settings-modal" class="modal-overlay">
     <div class="settings-box">
       <div class="settings-title">Réglages</div>
@@ -583,7 +618,6 @@
     </div>
   </div>
 
-  <!-- CAMÉRA -->
   <div id="camera-modal" class="modal-overlay">
     <video id="video-preview" autoplay playsinline></video>
     <div class="camera-controls">
@@ -610,7 +644,7 @@
     while (!myUsername || myUsername.replace(/^\s+|\s+$/g, '') === '') {
       myUsername = prompt("Entre ton pseudo (ex: pc, iphone16, iphone4) :");
     }
-    myUsername = myUsername.replace(/^\s+|\s+$/g, '').toLowerCase();
+    myUsername = myUsername.replace(/^\s+|\s+$/g, '');
     localStorage.setItem('crypting_username', myUsername);
 
     socket.emit('register user', myUsername);
@@ -671,7 +705,7 @@
     function addFriend() {
       var name = prompt("Pseudo exact du contact :");
       if (name) {
-        var cleanName = name.replace(/^\s+|\s+$/g, '').toLowerCase();
+        var cleanName = name.replace(/^\s+|\s+$/g, '');
         if (cleanName !== "") {
           if (friends.indexOf(cleanName) === -1) {
             friends.push(cleanName);
@@ -683,7 +717,7 @@
     }
 
     function openChat(friendName) {
-      currentFriend = friendName.toLowerCase();
+      currentFriend = friendName;
       document.getElementById('active-user-title').textContent = currentFriend;
       document.getElementById('btn-start-call').style.display = 'inline-block';
       document.body.className = 'in-chat';
@@ -782,9 +816,6 @@
       renderFriendsList();
     }
 
-    /* ==========================================================================
-       APPELS VOCAUX WEBRTC MULTI-APPAREILS (AUDIO FIX)
-       ========================================================================== */
     var peerConnection = null;
     var localStream = null;
     var incomingOffer = null;
@@ -834,7 +865,7 @@
         return;
       }
       unlockAudio();
-      callingFriend = currentFriend.toLowerCase();
+      callingFriend = currentFriend;
       document.getElementById('call-bar').style.display = 'block';
       document.getElementById('call-status-text').textContent = 'Appel de ' + callingFriend + '...';
       document.getElementById('btn-accept-call').style.display = 'none';
@@ -859,7 +890,7 @@
     }
 
     socket.on('incoming-call', function(data) {
-      callingFriend = String(data.from).toLowerCase();
+      callingFriend = String(data.from);
       incomingOffer = data.offer;
 
       if (!currentFriend || currentFriend !== callingFriend) {
@@ -983,7 +1014,6 @@
           img.onload = function() {
             var canvas = document.createElement('canvas');
             var ctx = canvas.getContext('2d');
-            // Compression à 480px max : léger pour l'iPhone 4, de très bonne qualité sur PC
             var maxDim = 480; 
             var w = img.width, h = img.height;
 
