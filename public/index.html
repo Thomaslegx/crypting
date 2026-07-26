@@ -2,9 +2,10 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=320, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- viewport-fit=cover est indispensable pour l'iPhone X à 16 (Dynamic Island & Encoches) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Crypting</title>
   
   <style>
@@ -13,28 +14,29 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
       -webkit-user-select: none;
+      user-select: none;
     }
 
     html, body {
-      width: 320px;
+      width: 100%;
       height: 100%;
-      max-height: 480px;
       background-color: #000;
       color: #dedede;
       overflow: hidden;
-      font-size: 12px;
-      margin: 0 auto;
+      font-size: 13px;
     }
 
     body {
       display: -webkit-box;
       display: flex;
+      -webkit-box-orient: horizontal;
+      flex-direction: row;
     }
 
-    /* --- SIDEBAR / CONTACTS --- */
+    /* --- SIDEBAR / LISTE CONTACTS --- */
     #sidebar {
       width: 100%;
       height: 100%;
@@ -43,11 +45,16 @@
       display: flex;
       -webkit-box-orient: vertical;
       flex-direction: column;
+      z-index: 10;
     }
 
     .sidebar-header {
-      height: 38px;
-      padding: 0 8px;
+      min-height: 44px;
+      /* Adaptation iPhone 10 à 16 pour ne pas être sous la Dynamic Island */
+      padding-top: constant(safe-area-inset-top);
+      padding-top: env(safe-area-inset-top);
+      padding-left: 12px;
+      padding-right: 12px;
       background-color: #181818;
       display: -webkit-box;
       display: flex;
@@ -64,13 +71,14 @@
       -webkit-box-align: center;
       align-items: center;
       font-weight: bold;
-      font-size: 13px;
+      font-size: 15px;
       color: #fff;
+      padding: 8px 0;
     }
 
     .logo-ghost {
-      width: 22px;
-      height: 22px;
+      width: 26px;
+      height: 26px;
       background-color: #fffc00;
       border-radius: 50%;
       display: -webkit-box;
@@ -79,8 +87,8 @@
       align-items: center;
       -webkit-box-pack: center;
       justify-content: center;
-      font-size: 12px;
-      margin-right: 6px;
+      font-size: 14px;
+      margin-right: 8px;
     }
 
     .header-actions {
@@ -93,10 +101,10 @@
     .btn-settings {
       background: none;
       border: none;
-      font-size: 15px;
+      font-size: 16px;
       color: #aaa;
-      padding: 4px;
-      margin-right: 2px;
+      padding: 6px;
+      margin-right: 4px;
       cursor: pointer;
     }
 
@@ -104,9 +112,9 @@
       background: #262626;
       color: #fffc00;
       border: none;
-      padding: 4px 8px;
-      border-radius: 10px;
-      font-size: 10px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 11px;
       font-weight: bold;
       cursor: pointer;
     }
@@ -124,9 +132,11 @@
       display: flex;
       -webkit-box-align: center;
       align-items: center;
-      padding: 8px 8px;
+      padding: 12px 10px;
       border-bottom: 1px solid #1a1a1a;
       cursor: pointer;
+      -webkit-transition: background-color 0.1s;
+      transition: background-color 0.1s;
     }
 
     .friend-item:active {
@@ -134,8 +144,8 @@
     }
 
     .avatar {
-      width: 30px;
-      height: 30px;
+      width: 36px;
+      height: 36px;
       background-color: #fffc00;
       color: #000;
       border-radius: 50%;
@@ -146,8 +156,8 @@
       -webkit-box-pack: center;
       justify-content: center;
       font-weight: bold;
-      font-size: 12px;
-      margin-right: 8px;
+      font-size: 14px;
+      margin-right: 10px;
     }
 
     .friend-info {
@@ -157,27 +167,28 @@
     }
 
     .friend-name {
-      font-size: 12px;
+      font-size: 13px;
       font-weight: bold;
       color: #fff;
     }
 
     .last-message {
-      font-size: 10px;
+      font-size: 11px;
       color: #777;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      margin-top: 2px;
     }
 
     .empty-state {
-      padding: 20px 10px;
+      padding: 30px 15px;
       text-align: center;
       color: #666;
-      font-size: 11px;
+      font-size: 12px;
     }
 
-    /* --- CHAT --- */
+    /* --- ZONE CHAT --- */
     #chat-main {
       width: 100%;
       height: 100%;
@@ -188,9 +199,12 @@
     }
 
     #chat-header {
-      height: 38px;
+      min-height: 44px;
+      padding-top: constant(safe-area-inset-top);
+      padding-top: env(safe-area-inset-top);
+      padding-left: 10px;
+      padding-right: 10px;
       background-color: #121212;
-      padding: 0 8px;
       display: -webkit-box;
       display: flex;
       -webkit-box-align: center;
@@ -205,10 +219,11 @@
       display: flex;
       -webkit-box-align: center;
       align-items: center;
+      padding: 8px 0;
     }
 
     .active-user-title {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: bold;
       color: #fff;
     }
@@ -217,26 +232,26 @@
       background: #222;
       color: #fffc00;
       border: 1px solid #333;
-      padding: 4px 8px;
-      border-radius: 10px;
-      font-size: 10px;
+      padding: 6px 12px;
+      border-radius: 14px;
+      font-size: 11px;
       font-weight: bold;
       cursor: pointer;
     }
 
-    /* BANDEAU WEBRTC IPONE 4 */
+    /* BANDEAU WEBRTC */
     #call-bar {
       display: none;
       background-color: #1c1c1e;
       border-bottom: 1px solid #333;
-      padding: 6px;
+      padding: 10px;
       text-align: center;
     }
 
     .call-status {
-      font-size: 11px;
+      font-size: 12px;
       color: #fffc00;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       font-weight: bold;
     }
 
@@ -251,11 +266,11 @@
       background: #34c759;
       color: #fff;
       border: none;
-      padding: 4px 10px;
-      border-radius: 10px;
+      padding: 6px 14px;
+      border-radius: 12px;
       font-weight: bold;
       font-size: 11px;
-      margin-right: 6px;
+      margin-right: 8px;
       cursor: pointer;
     }
 
@@ -263,8 +278,8 @@
       background: #ff3b30;
       color: #fff;
       border: none;
-      padding: 4px 10px;
-      border-radius: 10px;
+      padding: 6px 14px;
+      border-radius: 12px;
       font-weight: bold;
       font-size: 11px;
       cursor: pointer;
@@ -274,24 +289,25 @@
       -webkit-box-flex: 1;
       flex: 1;
       overflow-y: auto;
-      padding: 8px;
+      padding: 12px;
       -webkit-overflow-scrolling: touch;
     }
 
     .message-item {
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       clear: both;
-      max-width: 85%;
+      max-width: 80%;
     }
 
     .message-item.me { float: right; }
     .message-item.other { float: left; }
 
     .bubble {
-      padding: 6px 10px;
-      border-radius: 12px;
-      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 14px;
+      font-size: 13px;
       word-break: break-word;
+      line-height: 1.3;
     }
 
     .me .bubble {
@@ -306,17 +322,20 @@
     }
 
     .chat-img {
-      max-width: 140px;
-      border-radius: 6px;
-      margin-top: 3px;
+      max-width: 180px;
+      border-radius: 8px;
+      margin-top: 4px;
       border: 1px solid #333;
       display: block;
     }
 
-    /* BARRE DE SAISIE COMPACTE */
+    /* BARRE DE SAISIE */
     #form-bar {
-      height: 40px;
-      padding: 0 4px;
+      min-height: 48px;
+      padding-bottom: constant(safe-area-inset-bottom);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: 8px;
+      padding-right: 8px;
       background-color: #121212;
       display: -webkit-box;
       display: flex;
@@ -330,21 +349,22 @@
       flex: 1;
       background-color: #1a1a1a;
       border: none;
-      padding: 6px 10px;
-      border-radius: 14px;
+      padding: 8px 12px;
+      border-radius: 16px;
       color: #fff;
-      font-size: 11px;
+      font-size: 13px;
       outline: none;
-      margin: 0 4px;
+      margin: 6px 4px;
       -webkit-user-select: text;
+      user-select: text;
     }
 
     .action-btn {
       background: none;
       border: none;
-      font-size: 16px;
+      font-size: 18px;
       color: #888;
-      padding: 2px 4px;
+      padding: 6px;
       cursor: pointer;
     }
 
@@ -352,17 +372,50 @@
       background-color: #fffc00;
       color: #000;
       border: none;
-      padding: 5px 8px;
-      border-radius: 12px;
+      padding: 6px 12px;
+      border-radius: 14px;
       font-weight: bold;
-      font-size: 10px;
+      font-size: 11px;
       cursor: pointer;
+      margin-left: 2px;
     }
 
     #file-input { display: none; }
 
-    body.in-chat #sidebar { display: none; }
-    body.in-chat #chat-main { display: -webkit-box; display: flex; }
+    /* --- GESTION ADAPTATIVE (MOBILE VS PC) --- */
+    
+    /* Par défaut (Mobile / iPhone 4 / iPhone 16) : bascule sur le chat au clic */
+    @media (max-width: 767px) {
+      body.in-chat #sidebar { display: none; }
+      body.in-chat #chat-main { display: -webkit-box; display: flex; }
+    }
+
+    /* Écrans PC / Tablette (> 768px) : Affichage en 2 colonnes simultanées ! */
+    @media (min-width: 768px) {
+      #sidebar {
+        width: 320px;
+        min-width: 320px;
+        max-width: 320px;
+        border-right: 1px solid #222;
+      }
+      #chat-main {
+        display: -webkit-box !important;
+        display: flex !important;
+        -webkit-box-flex: 1;
+        flex: 1;
+      }
+      .btn-back { display: none !important; } /* Inutile de revenir en arrière sur PC */
+      
+      /* Effets souris uniquement pour PC */
+      .friend-item:hover { background-color: #1a1a1a; }
+      .btn-call:hover { background-color: #333; }
+      .btn-add-friend:hover { background-color: #333; }
+      #btn-send:hover { background-color: #e6e300; }
+      
+      /* Messages plus confortables sur grand écran */
+      .message-item { max-width: 60%; }
+      .chat-img { max-width: 260px; }
+    }
 
     /* MODALES */
     .modal-overlay {
@@ -375,40 +428,41 @@
 
     #settings-modal {
       text-align: center;
-      padding: 20px 10px;
+      padding: 30px 15px;
     }
 
     .settings-box {
       background: #181818;
       border: 1px solid #222;
-      border-radius: 10px;
-      padding: 15px 10px;
-      margin-top: 30px;
+      border-radius: 12px;
+      padding: 20px 15px;
+      margin: 40px auto 0 auto;
+      max-width: 320px;
     }
 
     .settings-title {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: bold;
       color: #fff;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
 
     .user-tag {
-      font-size: 11px;
+      font-size: 12px;
       color: #fffc00;
-      margin-bottom: 12px;
+      margin-bottom: 15px;
     }
 
     .btn-danger {
       background-color: #ff3b30;
       color: #fff;
       border: none;
-      padding: 8px 12px;
-      border-radius: 10px;
+      padding: 10px 16px;
+      border-radius: 14px;
       font-weight: bold;
-      font-size: 11px;
+      font-size: 12px;
       width: 100%;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       cursor: pointer;
     }
 
@@ -416,9 +470,9 @@
       background-color: #262626;
       color: #aaa;
       border: none;
-      padding: 6px 12px;
-      border-radius: 10px;
-      font-size: 11px;
+      padding: 8px 16px;
+      border-radius: 14px;
+      font-size: 12px;
       width: 100%;
       cursor: pointer;
     }
@@ -430,36 +484,43 @@
 
     #video-preview {
       width: 100%;
-      height: 280px;
+      height: 360px;
+      max-width: 480px;
+      margin: 0 auto;
       object-fit: cover;
       background: #111;
+      display: block;
     }
 
     .camera-controls {
-      height: 80px;
+      height: 100px;
       display: -webkit-box;
       display: flex;
       -webkit-box-align: center;
       align-items: center;
       -webkit-box-pack: justify;
       justify-content: space-around;
+      max-width: 480px;
+      margin: 0 auto;
     }
 
     .btn-snap {
-      width: 44px;
-      height: 44px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
-      border: 3px solid #fff;
+      border: 4px solid #fff;
       background: transparent;
+      cursor: pointer;
     }
 
     .btn-close-cam {
       color: #fff;
       background: #333;
       border: none;
-      padding: 5px 10px;
-      border-radius: 10px;
-      font-size: 11px;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -467,7 +528,7 @@
 
   <audio id="remote-audio" autoplay playsinline></audio>
 
-  <!-- ÉCRAN 1 : CONTACTS -->
+  <!-- ÉCRAN 1 : CONTACTS (A gauche sur PC, plein écran sur Mobile) -->
   <div id="sidebar">
     <div class="sidebar-header">
       <div class="brand">
@@ -482,14 +543,14 @@
     <ul class="friends-list" id="friends-list"></ul>
   </div>
 
-  <!-- ÉCRAN 2 : CHAT -->
+  <!-- ÉCRAN 2 : CHAT (A droite sur PC, plein écran sur Mobile) -->
   <div id="chat-main">
     <div id="chat-header">
       <div class="chat-header-user">
-        <button class="action-btn" onclick="closeChat()" style="margin-right:6px;">←</button>
-        <span class="active-user-title" id="active-user-title">Discussion</span>
+        <button class="action-btn btn-back" onclick="closeChat()" style="margin-right:8px;">←</button>
+        <span class="active-user-title" id="active-user-title">Sélectionne une discussion</span>
       </div>
-      <button class="btn-call" onclick="startCall()">📞 Appeler</button>
+      <button class="btn-call" id="btn-start-call" onclick="startCall()" style="display:none;">📞 Appeler</button>
     </div>
 
     <div id="call-bar">
@@ -547,7 +608,7 @@
 
     var myUsername = localStorage.getItem('crypting_username');
     while (!myUsername || myUsername.replace(/^\s+|\s+$/g, '') === '') {
-      myUsername = prompt("Entre ton pseudo (ex: iphone4) :");
+      myUsername = prompt("Entre ton pseudo (ex: pc, iphone16, iphone4) :");
     }
     myUsername = myUsername.replace(/^\s+|\s+$/g, '').toLowerCase();
     localStorage.setItem('crypting_username', myUsername);
@@ -567,7 +628,7 @@
     }
 
     function clearBrowserCache() {
-      if (confirm("Effacer les données enregistrées ?")) {
+      if (confirm("Effacer les contacts et discussions ?")) {
         localStorage.clear();
         location.reload();
       }
@@ -578,7 +639,7 @@
       listEl.innerHTML = '';
 
       if (friends.length === 0) {
-        listEl.innerHTML = '<div class="empty-state">Aucun ami.<br>Clique sur <b>"+ Ajouter"</b>.</div>';
+        listEl.innerHTML = '<div class="empty-state">Aucun ami.<br>Clique sur <b>"+ Ajouter"</b> pour démarrer.</div>';
         return;
       }
 
@@ -608,7 +669,7 @@
     }
 
     function addFriend() {
-      var name = prompt("Nom exact de l'ami :");
+      var name = prompt("Pseudo exact du contact :");
       if (name) {
         var cleanName = name.replace(/^\s+|\s+$/g, '').toLowerCase();
         if (cleanName !== "") {
@@ -624,6 +685,7 @@
     function openChat(friendName) {
       currentFriend = friendName.toLowerCase();
       document.getElementById('active-user-title').textContent = currentFriend;
+      document.getElementById('btn-start-call').style.display = 'inline-block';
       document.body.className = 'in-chat';
       renderMessages();
     }
@@ -631,6 +693,8 @@
     function closeChat() {
       document.body.className = '';
       currentFriend = null;
+      document.getElementById('active-user-title').textContent = 'Sélectionne une discussion';
+      document.getElementById('btn-start-call').style.display = 'none';
       renderFriendsList();
     }
 
@@ -692,7 +756,10 @@
     }
 
     function sendMessage(text, image) {
-      if (!currentFriend) return;
+      if (!currentFriend) {
+        alert("Sélectionne une discussion d'abord !");
+        return;
+      }
       if (!chats[currentFriend]) chats[currentFriend] = [];
 
       chats[currentFriend].push({
@@ -712,9 +779,12 @@
       });
 
       renderMessages();
+      renderFriendsList();
     }
 
-    /* WEBRTC IPONE 4 FIX */
+    /* ==========================================================================
+       APPELS VOCAUX WEBRTC MULTI-APPAREILS (AUDIO FIX)
+       ========================================================================== */
     var peerConnection = null;
     var localStream = null;
     var incomingOffer = null;
@@ -760,7 +830,7 @@
 
     function startCall() {
       if (!currentFriend) {
-        alert("Sélectionne un ami.");
+        alert("Sélectionne un ami à appeler.");
         return;
       }
       unlockAudio();
@@ -783,7 +853,7 @@
       }).then(function() {
         socket.emit('call-user', { target: callingFriend, offer: peerConnection.localDescription });
       }).catch(function(err) {
-        alert("Micro indisponible : " + err.message);
+        alert("Erreur accès micro : " + err.message);
         endCall();
       });
     }
@@ -797,7 +867,7 @@
       }
 
       document.getElementById('call-bar').style.display = 'block';
-      document.getElementById('call-status-text').textContent = '📞 Appel de ' + callingFriend;
+      document.getElementById('call-status-text').textContent = '📞 Appel entrant de ' + callingFriend;
       document.getElementById('btn-accept-call').style.display = 'inline-block';
     });
 
@@ -823,7 +893,7 @@
       }).then(function() {
         socket.emit('answer-call', { target: callingFriend, answer: peerConnection.localDescription });
       }).catch(function(err) {
-        alert("Micro indisponible : " + err.message);
+        alert("Erreur accès micro : " + err.message);
         endCall();
       });
     }
@@ -913,7 +983,8 @@
           img.onload = function() {
             var canvas = document.createElement('canvas');
             var ctx = canvas.getContext('2d');
-            var maxDim = 320; // Compression ajustée pour le processeur de l'iPhone 4
+            // Compression à 480px max : léger pour l'iPhone 4, de très bonne qualité sur PC
+            var maxDim = 480; 
             var w = img.width, h = img.height;
 
             if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
@@ -922,7 +993,7 @@
             canvas.width = w; canvas.height = h;
             ctx.drawImage(img, 0, 0, w, h);
 
-            sendMessage(null, canvas.toDataURL('image/jpeg', 0.4));
+            sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
           };
           img.src = evt.target.result;
         };
@@ -941,7 +1012,7 @@
           alert("Caméra indisponible.");
         });
       } else {
-        alert("Utilise 📁 pour envoyer une image.");
+        alert("Utilise l'icône dossier 📁 pour sélectionner une photo.");
       }
     }
 
@@ -956,11 +1027,11 @@
     function takeSnap() {
       var video = document.getElementById('video-preview');
       var canvas = document.createElement('canvas');
-      canvas.width = 240;
-      canvas.height = 280;
-      canvas.getContext('2d').drawImage(video, 0, 0, 240, 280);
+      canvas.width = 320;
+      canvas.height = 360;
+      canvas.getContext('2d').drawImage(video, 0, 0, 320, 360);
 
-      sendMessage(null, canvas.toDataURL('image/jpeg', 0.4));
+      sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
       closeCamera();
     }
 
