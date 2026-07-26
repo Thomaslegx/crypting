@@ -2,7 +2,6 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 
-// Limite augmentée (10 Mo) pour envoyer les données audio sans coupure
 const io = require('socket.io')(http, {
   maxHttpBufferSize: 1e7
 });
@@ -21,6 +20,7 @@ io.on('connection', function(socket) {
     console.log('[CONNEXION] ' + currentUser + ' (ID: ' + socket.id + ')');
   });
 
+  /* --- MESSAGES D'ECRAN CHAT --- */
   socket.on('chat message', function(data) {
     if (!data) return;
     
@@ -33,11 +33,44 @@ io.on('connection', function(socket) {
         sender: sender,
         text: data.text ? String(data.text) : null,
         image: data.image ? String(data.image) : null,
-        audio: data.audio ? String(data.audio) : null // Support de l'audio
+        audio: data.audio ? String(data.audio) : null
       });
-      console.log('[MSG PRIVÉ] De ' + sender + ' vers ' + targetUser);
-    } else {
-      console.log('[ATTENTION] Destinataire non disponible : ' + targetUser);
+    }
+  });
+
+  /* --- SIGNALISATION WEBRTC POUR APPEL EN CONTINU (TYPE DISCORD) --- */
+  socket.on('call-user', function(data) {
+    var targetSocketId = users[data.target];
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('incoming-call', {
+        from: currentUser,
+        offer: data.offer
+      });
+    }
+  });
+
+  socket.on('answer-call', function(data) {
+    var targetSocketId = users[data.target];
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('call-answered', {
+        answer: data.answer
+      });
+    }
+  });
+
+  socket.on('ice-candidate', function(data) {
+    var targetSocketId = users[data.target];
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('ice-candidate', {
+        candidate: data.candidate
+      });
+    }
+  });
+
+  socket.on('end-call', function(data) {
+    var targetSocketId = users[data.target];
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('call-ended');
     }
   });
 
