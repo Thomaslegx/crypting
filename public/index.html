@@ -30,7 +30,7 @@
       display: flex;
     }
 
-    /* --- SIDEBAR / CONTACTS --- */
+    /* --- SIDEBAR --- */
     #sidebar {
       width: 100%;
       height: 100%;
@@ -172,7 +172,7 @@
       font-size: 12px;
     }
 
-    /* --- ZONE CHAT --- */
+    /* --- CHAT --- */
     #chat-main {
       width: 100%;
       height: 100%;
@@ -190,13 +190,33 @@
       display: flex;
       -webkit-box-align: center;
       align-items: center;
+      -webkit-box-pack: justify;
+      justify-content: space-between;
       border-bottom: 1px solid #222;
+    }
+
+    .chat-header-user {
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
     }
 
     .active-user-title {
       font-size: 14px;
       font-weight: bold;
       color: #fff;
+    }
+
+    .btn-call {
+      background: #222;
+      color: #fffc00;
+      border: 1px solid #333;
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
     }
 
     #messages-container {
@@ -213,13 +233,8 @@
       max-width: 80%;
     }
 
-    .message-item.me {
-      float: right;
-    }
-
-    .message-item.other {
-      float: left;
-    }
+    .message-item.me { float: right; }
+    .message-item.other { float: left; }
 
     .bubble {
       padding: 8px 12px;
@@ -247,13 +262,49 @@
       display: block;
     }
 
-    audio {
-      max-width: 200px;
-      height: 32px;
-      margin-top: 4px;
+    /* --- BANDEAU APPEL WEBRTC --- */
+    #call-bar {
+      display: none;
+      background-color: #1c1c1e;
+      border-bottom: 1px solid #333;
+      padding: 10px;
+      text-align: center;
     }
 
-    /* --- BARRE DE SAISIE --- */
+    .call-status {
+      font-size: 12px;
+      color: #fffc00;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .call-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-call-accept {
+      background: #34c759;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-call-reject {
+      background: #ff3b30;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* --- SAISIE --- */
     #form-bar {
       height: 48px;
       padding: 0 8px;
@@ -287,11 +338,6 @@
       cursor: pointer;
     }
 
-    .btn-mic-recording {
-      color: #ff3b30 !important;
-      animation: pulse 1s infinite;
-    }
-
     #btn-send {
       background-color: #fffc00;
       color: #000;
@@ -303,11 +349,12 @@
       cursor: pointer;
     }
 
-    #file-input, #audio-input { display: none; }
+    #file-input { display: none; }
 
     body.in-chat #sidebar { display: none; }
     body.in-chat #chat-main { display: -webkit-box; display: flex; }
 
+    /* MODALES */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -408,6 +455,9 @@
 </head>
 <body>
 
+  <!-- ELEMENT AUDIO MASQUÉ POUR ENTENDRE L'AUTRE EN DIRECT -->
+  <audio id="remote-audio" autoplay></audio>
+
   <!-- ECRAN 1 : CONTACTS -->
   <div id="sidebar">
     <div class="sidebar-header">
@@ -426,8 +476,21 @@
   <!-- ECRAN 2 : CHAT -->
   <div id="chat-main">
     <div id="chat-header">
-      <button class="action-btn" onclick="closeChat()" style="margin-right:8px;">←</button>
-      <span class="active-user-title" id="active-user-title">Discussion</span>
+      <div class="chat-header-user">
+        <button class="action-btn" onclick="closeChat()" style="margin-right:8px;">←</button>
+        <span class="active-user-title" id="active-user-title">Discussion</span>
+      </div>
+      <!-- BOUTON D'APPEL VOCAL CONTINU -->
+      <button class="btn-call" onclick="startCall()">📞 Appeler</button>
+    </div>
+
+    <!-- BANDEAU D'APPEL EN COURS / ENTRANT -->
+    <div id="call-bar">
+      <div class="call-status" id="call-status-text">Appel en cours...</div>
+      <div class="call-actions">
+        <button class="btn-call-accept" id="btn-accept-call" onclick="acceptCall()" style="display:none;">Décrocher</button>
+        <button class="btn-call-reject" onclick="endCall()">Raccrocher</button>
+      </div>
     </div>
 
     <div id="messages-container"></div>
@@ -436,10 +499,6 @@
       <button type="button" class="action-btn" onclick="openCamera()">📷</button>
       <label for="file-input" class="action-btn">📁</label>
       <input type="file" id="file-input" accept="image/*">
-      
-      <!-- BOUTON MICRO ET FICHIER AUDIO DE SECOURS (IPHONE 4) -->
-      <button type="button" id="mic-btn" class="action-btn" onclick="toggleAudioRecord()">🎤</button>
-      <input type="file" id="audio-input" accept="audio/*">
 
       <input id="input-message" autocomplete="off" placeholder="Message..." />
       <button id="btn-send" type="button" onclick="triggerSend()">OK</button>
@@ -525,7 +584,7 @@
 
           var friendMsgs = chats[friendName] || [];
           var lastMsg = friendMsgs.length > 0 ? friendMsgs[friendMsgs.length - 1] : null;
-          var lastText = lastMsg ? (lastMsg.audio ? '🎤 Note vocale' : (lastMsg.image ? '📷 Snap' : lastMsg.text)) : 'Nouvelle discussion';
+          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap' : lastMsg.text) : 'Nouvelle discussion';
 
           li.innerHTML = 
             '<div class="avatar">' + friendName.charAt(0).toUpperCase() + '</div>' +
@@ -597,13 +656,6 @@
           div.appendChild(img);
         }
 
-        if (msg.audio) {
-          var aud = document.createElement('audio');
-          aud.controls = true;
-          aud.src = msg.audio;
-          div.appendChild(aud);
-        }
-
         container.appendChild(div);
       }
 
@@ -633,12 +685,12 @@
       }
 
       if (val && val !== '') {
-        sendMessage(val, null, null);
+        sendMessage(val, null);
         input.value = '';
       }
     }
 
-    function sendMessage(text, image, audio) {
+    function sendMessage(text, image) {
       if (!currentFriend) return;
 
       if (!chats[currentFriend]) chats[currentFriend] = [];
@@ -647,7 +699,6 @@
         sender: 'me',
         text: text,
         image: image,
-        audio: audio,
         timestamp: new Date().getTime()
       });
 
@@ -657,8 +708,7 @@
         sender: String(myUsername),
         target: String(currentFriend),
         text: text ? String(text) : null,
-        image: image ? String(image) : null,
-        audio: audio ? String(audio) : null
+        image: image ? String(image) : null
       };
 
       socket.emit('chat message', payload);
@@ -666,66 +716,147 @@
       renderMessages();
     }
 
-    /* --- ENREGISTREMENT AUDIO (WALKIE TALKIE / NOTES VOCALES) --- */
-    var mediaRecorder = null;
-    var audioChunks = [];
-    var isRecording = false;
+    /* ==========================================================================
+       FONCTIONNALITÉ APPEL VOCAL EN CONTINU (WEBRTC TYPE DISCORD)
+       ========================================================================== */
+    var peerConnection = null;
+    var localStream = null;
+    var incomingOffer = null;
+    var callingFriend = null;
 
-    function toggleAudioRecord() {
-      // Si MediaRecorder existe (PC & iPhone 16)
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder) {
-        var btn = document.getElementById('mic-btn');
-        if (!isRecording) {
-          navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
-            mediaRecorder = new MediaRecorder(stream);
-            audioChunks = [];
-
-            mediaRecorder.ondataavailable = function(e) {
-              if (e.data.size > 0) audioChunks.push(e.data);
-            };
-
-            mediaRecorder.onstop = function() {
-              var audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-              var reader = new FileReader();
-              reader.onload = function(evt) {
-                sendMessage(null, null, evt.target.result);
-              };
-              reader.readAsDataURL(audioBlob);
-
-              // Fermeture des canaux micro
-              var tracks = stream.getTracks();
-              for (var i = 0; i < tracks.length; i++) tracks[i].stop();
-            };
-
-            mediaRecorder.start();
-            isRecording = true;
-            btn.className = 'action-btn btn-mic-recording';
-          }).catch(function() {
-            alert("Accès micro refusé.");
-          });
-        } else {
-          mediaRecorder.stop();
-          isRecording = false;
-          btn.className = 'action-btn';
-        }
-      } else {
-        // Mode fallback (iPhone 4 / iOS 7) : déclenche le dictaphone
-        document.getElementById('audio-input').click();
-      }
-    }
-
-    document.getElementById('audio-input').onchange = function(e) {
-      var file = e.target.files[0];
-      if (file) {
-        var reader = new FileReader();
-        reader.onload = function(evt) {
-          sendMessage(null, null, evt.target.result);
-        };
-        reader.readAsDataURL(file);
-      }
+    var rtcConfig = {
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     };
 
-    // --- RÉCEPTION RÉSEAU ---
+    function startCall() {
+      if (!currentFriend) return;
+      if (!navigator.mediaDevices || !window.RTCPeerConnection) {
+        alert("Les appels en direct ne sont pas supportés sur ce navigateur.");
+        return;
+      }
+
+      callingFriend = currentFriend;
+      document.getElementById('call-bar').style.display = 'block';
+      document.getElementById('call-status-text').textContent = 'Appel de ' + callingFriend + '...';
+      document.getElementById('btn-accept-call').style.display = 'none';
+
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+        localStream = stream;
+        peerConnection = new RTCPeerConnection(rtcConfig);
+
+        localStream.getTracks().forEach(function(track) {
+          peerConnection.addTrack(track, localStream);
+        });
+
+        peerConnection.ontrack = function(event) {
+          document.getElementById('remote-audio').srcObject = event.streams[0];
+        };
+
+        peerConnection.onicecandidate = function(event) {
+          if (event.candidate) {
+            socket.emit('ice-candidate', { target: callingFriend, candidate: event.candidate });
+          }
+        };
+
+        peerConnection.createOffer().then(function(offer) {
+          return peerConnection.setLocalDescription(offer);
+        }).then(function() {
+          socket.emit('call-user', { target: callingFriend, offer: peerConnection.localDescription });
+        });
+
+      }).catch(function(err) {
+        alert("Micro inaccessible : " + err.message);
+        endCall();
+      });
+    }
+
+    socket.on('incoming-call', function(data) {
+      callingFriend = data.from;
+      incomingOffer = data.offer;
+
+      if (!currentFriend) {
+        openChat(callingFriend);
+      }
+
+      document.getElementById('call-bar').style.display = 'block';
+      document.getElementById('call-status-text').textContent = 'Appel entrant de ' + callingFriend;
+      document.getElementById('btn-accept-call').style.display = 'inline-block';
+    });
+
+    function acceptCall() {
+      document.getElementById('btn-accept-call').style.display = 'none';
+      document.getElementById('call-status-text').textContent = 'En communication avec ' + callingFriend;
+
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+        localStream = stream;
+        peerConnection = new RTCPeerConnection(rtcConfig);
+
+        localStream.getTracks().forEach(function(track) {
+          peerConnection.addTrack(track, localStream);
+        });
+
+        peerConnection.ontrack = function(event) {
+          document.getElementById('remote-audio').srcObject = event.streams[0];
+        };
+
+        peerConnection.onicecandidate = function(event) {
+          if (event.candidate) {
+            socket.emit('ice-candidate', { target: callingFriend, candidate: event.candidate });
+          }
+        };
+
+        peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer)).then(function() {
+          return peerConnection.createAnswer();
+        }).then(function(answer) {
+          return peerConnection.setLocalDescription(answer);
+        }).then(function() {
+          socket.emit('answer-call', { target: callingFriend, answer: peerConnection.localDescription });
+        });
+
+      }).catch(function(err) {
+        alert("Erreur micro : " + err.message);
+        endCall();
+      });
+    }
+
+    socket.on('call-answered', function(data) {
+      document.getElementById('call-status-text').textContent = 'En communication avec ' + callingFriend;
+      if (peerConnection) {
+        peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+      }
+    });
+
+    socket.on('ice-candidate', function(data) {
+      if (peerConnection && data.candidate) {
+        peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      }
+    });
+
+    socket.on('call-ended', function() {
+      closeCallBar();
+    });
+
+    function endCall() {
+      if (callingFriend) {
+        socket.emit('end-call', { target: callingFriend });
+      }
+      closeCallBar();
+    }
+
+    function closeCallBar() {
+      document.getElementById('call-bar').style.display = 'none';
+      if (localStream) {
+        localStream.getTracks().forEach(function(track) { track.stop(); });
+        localStream = null;
+      }
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+      callingFriend = null;
+    }
+
+    // --- RÉCEPTION CHAT RÉSEAU ---
     socket.on('chat message', function(data) {
       var sender = data.sender;
       if (!sender) return;
@@ -741,7 +872,6 @@
         sender: 'other',
         text: data.text,
         image: data.image,
-        audio: data.audio,
         timestamp: new Date().getTime()
       });
 
@@ -759,7 +889,7 @@
       }
     });
 
-    // --- ENVOI FICHIER IMAGE ---
+    // --- ENVOI FICHIER ---
     document.getElementById('file-input').onchange = function(e) {
       var file = e.target.files[0];
       if (file) {
@@ -778,7 +908,7 @@
             canvas.width = w; canvas.height = h;
             ctx.drawImage(img, 0, 0, w, h);
 
-            sendMessage(null, canvas.toDataURL('image/jpeg', 0.5), null);
+            sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
           };
           img.src = evt.target.result;
         };
@@ -817,7 +947,7 @@
       canvas.height = 360;
       canvas.getContext('2d').drawImage(video, 0, 0, 320, 360);
 
-      sendMessage(null, canvas.toDataURL('image/jpeg', 0.5), null);
+      sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
       closeCamera();
     }
 
