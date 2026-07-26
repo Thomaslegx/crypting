@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="fr" theme="dark">
+<html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- Force l'affichage exact 320px sans zoom ni bandes vides sur Safari iOS 7 -->
+  <meta name="viewport" content="width=320, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>Crypting</title>
   
   <style>
@@ -12,412 +13,553 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, Helvetica, Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
 
-    body {
-      background-color: #121212;
+    /* Support complet des anciens Safari iOS */
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #000;
       color: #dedede;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
       overflow: hidden;
+      font-size: 13px;
     }
 
-    /* En-tête style Snapchat */
-    #header {
-      height: 60px;
-      background-color: #1a1a1a;
+    body {
+      display: -webkit-box;
       display: flex;
+    }
+
+    /* --- SIDEBAR / LISTE DES AMIS --- */
+    #sidebar {
+      width: 100%;
+      height: 100%;
+      background-color: #121212;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-orient: vertical;
+      flex-direction: column;
+    }
+
+    .sidebar-header {
+      height: 44px; /* Hauteur standard iOS 7 */
+      padding: 0 10px;
+      background-color: #181818;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
       align-items: center;
+      -webkit-box-pack: justify;
       justify-content: space-between;
-      padding: 0 16px;
-      border-bottom: 1px solid #2a2a2a;
-      z-index: 10;
+      border-bottom: 1px solid #222;
     }
 
     .brand {
+      display: -webkit-box;
       display: flex;
+      -webkit-box-align: center;
       align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 18px;
+      font-weight: bold;
+      font-size: 15px;
       color: #fff;
     }
 
     .logo-ghost {
-      width: 32px;
-      height: 32px;
+      width: 26px;
+      height: 26px;
       background-color: #fffc00;
       border-radius: 50%;
+      display: -webkit-box;
       display: flex;
+      -webkit-box-align: center;
       align-items: center;
+      -webkit-box-pack: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: 14px;
+      margin-right: 8px;
     }
 
-    .user-profile {
-      background: #2a2a2a;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 13px;
+    .btn-add-friend {
+      background: #262626;
       color: #fffc00;
-      font-weight: 600;
-      cursor: pointer;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
     }
 
-    /* Zone de Chat */
-    #messages {
+    .friends-list {
+      -webkit-box-flex: 1;
       flex: 1;
       overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
       list-style: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .friend-item {
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      background-color: #333;
+      border-radius: 50%;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #fff;
+      margin-right: 10px;
+    }
+
+    .friend-info {
+      -webkit-box-flex: 1;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .friend-name {
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .last-message {
+      font-size: 11px;
+      color: #777;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* --- ZONE CHAT --- */
+    #chat-main {
+      width: 100%;
+      height: 100%;
+      display: none;
+      -webkit-box-orient: vertical;
+      flex-direction: column;
+      background-color: #0b0b0b;
+    }
+
+    #chat-header {
+      height: 44px;
+      background-color: #121212;
+      padding: 0 10px;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      border-bottom: 1px solid #222;
+    }
+
+    .active-user-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    #messages-container {
+      -webkit-box-flex: 1;
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      -webkit-overflow-scrolling: touch;
     }
 
     .message-item {
-      display: flex;
-      flex-direction: column;
-      max-width: 75%;
-      animation: fadeIn 0.2s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(5px); }
-      to { opacity: 1; transform: translateY(0); }
+      margin-bottom: 8px;
+      clear: both;
+      max-width: 80%;
     }
 
     .message-item.me {
-      align-self: flex-end;
+      float: right;
     }
 
     .message-item.other {
-      align-self: flex-start;
-    }
-
-    .sender-name {
-      font-size: 11px;
-      color: #888;
-      margin-bottom: 4px;
-      font-weight: 600;
-    }
-
-    .me .sender-name {
-      text-align: right;
-      color: #0084ff;
+      float: left;
     }
 
     .bubble {
-      padding: 10px 14px;
-      border-radius: 18px;
-      font-size: 14px;
-      line-height: 1.4;
+      padding: 8px 12px;
+      border-radius: 14px;
+      font-size: 13px;
       word-break: break-word;
     }
 
     .me .bubble {
       background-color: #0084ff;
       color: #fff;
-      border-bottom-right-radius: 4px;
     }
 
     .other .bubble {
-      background-color: #262626;
+      background-color: #222;
       color: #fff;
-      border-bottom-left-radius: 4px;
     }
 
     .chat-img {
-      max-width: 100%;
-      border-radius: 12px;
+      max-width: 180px;
+      border-radius: 8px;
       margin-top: 4px;
       border: 1px solid #333;
+      display: block;
     }
 
-    /* Interface Caméra / Modal */
-    #camera-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: #000;
-      z-index: 100;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px 0;
-    }
-
-    #video-preview {
-      width: 100%;
-      height: 75vh;
-      object-fit: cover;
-    }
-
-    .camera-controls {
-      display: flex;
-      align-items: center;
-      gap: 30px;
-    }
-
-    .btn-snap {
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      border: 5px solid #fff;
-      background: transparent;
-      cursor: pointer;
-    }
-
-    .btn-snap:active {
-      background: #fffc00;
-    }
-
-    .btn-close-cam {
-      color: #fff;
-      background: rgba(255,255,255,0.2);
-      border: none;
-      padding: 10px 18px;
-      border-radius: 20px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    /* Barre d'action en bas */
+    /* --- BARRE DE SAISIE COMPACTE --- */
     #form-bar {
-      padding: 12px 16px;
-      background-color: #1a1a1a;
+      height: 48px;
+      padding: 0 8px;
+      background-color: #121212;
+      display: -webkit-box;
       display: flex;
+      -webkit-box-align: center;
       align-items: center;
-      gap: 10px;
-      border-top: 1px solid #2a2a2a;
+      border-top: 1px solid #222;
     }
 
     #input-message {
+      -webkit-box-flex: 1;
       flex: 1;
-      background-color: #262626;
+      background-color: #1a1a1a;
       border: none;
-      padding: 12px 16px;
-      border-radius: 24px;
+      padding: 8px 12px;
+      border-radius: 16px;
       color: #fff;
-      font-size: 14px;
+      font-size: 12px;
       outline: none;
-    }
-
-    #input-message::placeholder {
-      color: #777;
+      margin: 0 6px;
     }
 
     .action-btn {
       background: none;
       border: none;
-      font-size: 22px;
-      cursor: pointer;
+      font-size: 18px;
       color: #888;
-      transition: color 0.2s;
-    }
-
-    .action-btn:hover {
-      color: #fffc00;
+      padding: 4px;
     }
 
     #btn-send {
       background-color: #fffc00;
       color: #000;
       border: none;
-      padding: 10px 16px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 14px;
+      font-weight: bold;
+      font-size: 11px;
     }
 
     #file-input { display: none; }
+
+    /* BASCULE DE VUE POUR L'ÉCRAN NARROW (320px) */
+    body.in-chat #sidebar { display: none; }
+    body.in-chat #chat-main { display: -webkit-box; display: flex; }
+
+    /* --- CAMÉRA MODALE COMPACTE --- */
+    #camera-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #000;
+      z-index: 100;
+      text-align: center;
+    }
+
+    #video-preview {
+      width: 100%;
+      height: 360px;
+      object-fit: cover;
+      background: #111;
+    }
+
+    .camera-controls {
+      height: 120px;
+      display: -webkit-box;
+      display: flex;
+      -webkit-box-align: center;
+      align-items: center;
+      -webkit-box-pack: justify;
+      justify-content: space-around;
+    }
+
+    .btn-snap {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: transparent;
+    }
+
+    .btn-close-cam {
+      color: #fff;
+      background: #333;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
 
-  <!-- En-tête -->
-  <div id="header">
-    <div class="brand">
-      <div class="logo-ghost">👻</div>
-      <span>Crypting</span>
+  <!-- ÉCRAN 1 : LISTE DES CONTACTS -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="logo-ghost">👻</div>
+        <span>Crypting</span>
+      </div>
+      <button class="btn-add-friend" onclick="addFriend()">+ Ajouter</button>
     </div>
-    <div class="user-profile" id="user-display" onclick="changeUsername()">
-      Mon Profil
-    </div>
+    <ul class="friends-list" id="friends-list"></ul>
   </div>
 
-  <!-- Messages -->
-  <ul id="messages"></ul>
+  <!-- ÉCRAN 2 : CONVERSATION -->
+  <div id="chat-main">
+    <div id="chat-header">
+      <button class="action-btn" onclick="closeChat()" style="margin-right:8px;">←</button>
+      <span class="active-user-title" id="active-user-title">Discussion</span>
+    </div>
 
-  <!-- Interface Caméra (Optionnelle/Modale) -->
+    <div id="messages-container"></div>
+
+    <form id="form-bar" action="" onsubmit="return handleSend(event)">
+      <button type="button" class="action-btn" onclick="openCamera()">📷</button>
+      <label for="file-input" class="action-btn">📁</label>
+      <input type="file" id="file-input" accept="image/*">
+      
+      <input id="input-message" autocomplete="off" placeholder="Message..." />
+      <button id="btn-send" type="submit">OK</button>
+    </form>
+  </div>
+
+  <!-- ÉCRAN 3 : CAMÉRA -->
   <div id="camera-modal">
     <video id="video-preview" autoplay playsinline></video>
     <div class="camera-controls">
-      <button class="btn-close-cam" onclick="closeCamera()">Fermer</button>
+      <button class="btn-close-cam" onclick="closeCamera()">Annuler</button>
       <button class="btn-snap" onclick="takeSnap()"></button>
     </div>
   </div>
 
-  <!-- Formulaire / Bar de saisie -->
-  <form id="form-bar" action="">
-    <button type="button" class="action-btn" onclick="openCamera()">📷</button>
-    <label for="file-input" class="action-btn">📁</label>
-    <input type="file" id="file-input" accept="image/*">
-    
-    <input id="input-message" autocomplete="off" placeholder="Envoyer un Chat..." />
-    <button id="btn-send" type="submit">Envoyer</button>
-  </form>
-
   <script src="/socket.io/socket.io.js"></script>
   <script>
+    /* JavaScript en ES5 pur pour la compatibilité iOS 7 / WebKit iPhone 4 */
     var socket = io();
-    var form = document.getElementById('form-bar');
-    var input = document.getElementById('input-message');
-    var messages = document.getElementById('messages');
-    var fileInput = document.getElementById('file-input');
-    var userDisplay = document.getElementById('user-display');
-    var cameraModal = document.getElementById('camera-modal');
-    var videoPreview = document.getElementById('video-preview');
-    var mediaStream = null;
+    var currentFriend = null;
 
-    // --- GESTION PSEUDO ---
-    var currentName = localStorage.getItem('chat_username');
-    if (!currentName) {
-      currentName = prompt("Choisis ton Pseudo Snap :", "") || "Snapuser";
-      localStorage.setItem('chat_username', currentName);
+    function getStoredData(key, fallback) {
+      var data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : fallback;
     }
-    userDisplay.textContent = currentName;
 
-    function changeUsername() {
-      var newName = prompt("Nouveau pseudo :", currentName);
-      if (newName && newName.trim() !== "") {
-        currentName = newName.trim();
-        localStorage.setItem('chat_username', currentName);
-        userDisplay.textContent = currentName;
+    function setStoredData(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    var friends = getStoredData('crypting_friends', ['Alex', 'Sophie']);
+    var chats = getStoredData('crypting_chats', {});
+
+    function renderFriendsList() {
+      var listEl = document.getElementById('friends-list');
+      listEl.innerHTML = '';
+
+      for (var i = 0; i < friends.length; i++) {
+        (function(friend) {
+          var li = document.createElement('li');
+          li.className = 'friend-item';
+
+          var friendMsgs = chats[friend] || [];
+          var lastMsg = friendMsgs.length > 0 ? friendMsgs[friendMsgs.length - 1] : null;
+          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap reçu' : lastMsg.text) : 'Nouvelle discussion';
+
+          li.innerHTML = 
+            '<div class="avatar">' + friend.charAt(0).toUpperCase() + '</div>' +
+            '<div class="friend-info">' +
+              '<div class="friend-name">' + friend + '</div>' +
+              '<div class="last-message">' + lastText + '</div>' +
+            '</div>';
+
+          li.onclick = function() { openChat(friend); };
+          listEl.appendChild(li);
+        })(friends[i]);
       }
     }
 
-    // --- ENVOI DES MESSAGES ---
-    form.onsubmit = function(e) {
-      if (e) e.preventDefault();
+    function addFriend() {
+      var name = prompt("Nom de l'ami :");
+      if (name && name.trim() !== "" && friends.indexOf(name.trim()) === -1) {
+        friends.push(name.trim());
+        setStoredData('crypting_friends', friends);
+        renderFriendsList();
+      }
+    }
+
+    function openChat(friend) {
+      currentFriend = friend;
+      document.getElementById('active-user-title').textContent = friend;
+      document.body.className = 'in-chat';
+      renderMessages();
+    }
+
+    function closeChat() {
+      document.body.className = '';
+      currentFriend = null;
+      renderFriendsList();
+    }
+
+    function renderMessages() {
+      var container = document.getElementById('messages-container');
+      container.innerHTML = '';
+
+      if (!currentFriend) return;
+
+      var msgs = chats[currentFriend] || [];
+
+      for (var i = 0; i < msgs.length; i++) {
+        var msg = msgs[i];
+        var div = document.createElement('div');
+        div.className = 'message-item ' + (msg.sender === 'me' ? 'me' : 'other');
+
+        if (msg.text) {
+          var bubble = document.createElement('div');
+          bubble.className = 'bubble';
+          bubble.textContent = msg.text;
+          div.appendChild(bubble);
+        }
+
+        if (msg.image) {
+          var img = document.createElement('img');
+          img.src = msg.image;
+          img.className = 'chat-img';
+          div.appendChild(img);
+        }
+
+        container.appendChild(div);
+      }
+
+      var clearDiv = document.createElement('div');
+      clearDiv.style.clear = 'both';
+      container.appendChild(clearDiv);
+
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function sendMessage(text, image) {
+      if (!currentFriend) return;
+
+      if (!chats[currentFriend]) chats[currentFriend] = [];
+
+      chats[currentFriend].push({ sender: 'me', text: text, image: image, timestamp: new Date().getTime() });
+      setStoredData('crypting_chats', chats);
+
+      socket.emit('chat message', {
+        target: currentFriend,
+        text: text,
+        image: image
+      });
+
+      renderMessages();
+    }
+
+    function handleSend(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var input = document.getElementById('input-message');
       if (input.value.trim() !== '') {
-        socket.emit('chat message', {
-          user: currentName,
-          text: input.value,
-          image: null
-        });
+        sendMessage(input.value.trim(), null);
         input.value = '';
       }
       return false;
-    };
-
-    // --- RECUPERATION DES MESSAGES ---
-    socket.on('chat message', function(data) {
-      var li = document.createElement('li');
-      var isMe = data.user === currentName;
-      
-      li.className = 'message-item ' + (isMe ? 'me' : 'other');
-
-      var nameSpan = document.createElement('span');
-      nameSpan.className = 'sender-name';
-      nameSpan.textContent = data.user;
-      li.appendChild(nameSpan);
-
-      if (data.text) {
-        var bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        bubble.textContent = data.text;
-        li.appendChild(bubble);
-      }
-
-      if (data.image) {
-        var img = document.createElement('img');
-        img.src = data.image;
-        img.className = 'chat-img';
-        img.onload = function() {
-          messages.scrollTop = messages.scrollHeight;
-        };
-        li.appendChild(img);
-      }
-
-      messages.appendChild(li);
-      messages.scrollTop = messages.scrollHeight;
-    });
-
-    // --- ENVOI DE FICHIER IMAGE ---
-    fileInput.onchange = function(e) {
-      var file = e.target.files[0];
-      if (file) {
-        compressAndSend(file);
-        fileInput.value = '';
-      }
-    };
-
-    function compressAndSend(file) {
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var img = new Image();
-        img.onload = function() {
-          var canvas = document.createElement('canvas');
-          var ctx = canvas.getContext('2d');
-          var maxDim = 800;
-          var w = img.width, h = img.height;
-
-          if (w > h && w > maxDim) { h *= maxDim / w; w = maxDim; }
-          else if (h > maxDim) { w *= maxDim / h; h = maxDim; }
-
-          canvas.width = w;
-          canvas.height = h;
-          ctx.drawImage(img, 0, 0, w, h);
-
-          socket.emit('chat message', {
-            user: currentName,
-            text: null,
-            image: canvas.toDataURL('image/jpeg', 0.6)
-          });
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
     }
 
-    // --- APPAREIL PHOTO EN DIRECT (Webcam/Mobile) ---
-    async function openCamera() {
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-        videoPreview.srcObject = mediaStream;
-        cameraModal.style.display = 'flex';
-      } catch (err) {
-        alert("Impossible d'accéder à la caméra.");
+    socket.on('chat message', function(data) {
+      var sender = data.sender || 'Alex';
+      if (!chats[sender]) chats[sender] = [];
+
+      chats[sender].push({ sender: 'other', text: data.text, image: data.image, timestamp: new Date().getTime() });
+      setStoredData('crypting_chats', chats);
+
+      if (currentFriend === sender) {
+        renderMessages();
+      }
+      renderFriendsList();
+    });
+
+    // --- ENVOI FICHIER ---
+    document.getElementById('file-input').onchange = function(e) {
+      var file = e.target.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          var img = new Image();
+          img.onload = function() {
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            var maxDim = 480; // Taille adaptée à la mémoire de l'iPhone 4
+            var w = img.width, h = img.height;
+
+            if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+            else if (h > maxDim) { w = Math.round(w * (maxDim / h)); h = maxDim; }
+
+            canvas.width = w; canvas.height = h;
+            ctx.drawImage(img, 0, 0, w, h);
+
+            sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
+          };
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    // --- CAMÉRA ---
+    var mediaStream = null;
+    function openCamera() {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: true }).then(function(stream) {
+          mediaStream = stream;
+          document.getElementById('video-preview').srcObject = stream;
+          document.getElementById('camera-modal').style.display = 'block';
+        }).catch(function() {
+          alert("Caméra non supportée.");
+        });
+      } else {
+        alert("La caméra en direct n'est pas supportée par ce navigateur. Utilisez le bouton dossier 📁 pour importer une photo.");
       }
     }
 
     function closeCamera() {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
+      if (mediaStream && mediaStream.getTracks) {
+        var tracks = mediaStream.getTracks();
+        for (var i = 0; i < tracks.length; i++) tracks[i].stop();
       }
-      cameraModal.style.display = 'none';
+      document.getElementById('camera-modal').style.display = 'none';
     }
 
     function takeSnap() {
+      var video = document.getElementById('video-preview');
       var canvas = document.createElement('canvas');
-      canvas.width = videoPreview.videoWidth;
-      canvas.height = videoPreview.videoHeight;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(videoPreview, 0, 0);
+      canvas.width = 320;
+      canvas.height = 360;
+      canvas.getContext('2d').drawImage(video, 0, 0, 320, 360);
 
-      socket.emit('chat message', {
-        user: currentName,
-        text: null,
-        image: canvas.toDataURL('image/jpeg', 0.6)
-      });
-
+      sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
       closeCamera();
     }
+
+    renderFriendsList();
   </script>
 </body>
 </html>
