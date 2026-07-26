@@ -30,7 +30,7 @@
       display: flex;
     }
 
-    /* --- SIDEBAR / LISTE DES AMIS --- */
+    /* --- SIDEBAR / CONTACTS --- */
     #sidebar {
       width: 100%;
       height: 100%;
@@ -228,14 +228,12 @@
       word-break: break-word;
     }
 
-    /* BULLES MES MESSAGES : JAUNE SNAPCHAT */
     .me .bubble {
       background-color: #fffc00;
       color: #000;
       font-weight: 500;
     }
 
-    /* BULLES AUTRES : GRIS FONCÉ */
     .other .bubble {
       background-color: #222;
       color: #fff;
@@ -247,6 +245,12 @@
       margin-top: 4px;
       border: 1px solid #333;
       display: block;
+    }
+
+    audio {
+      max-width: 200px;
+      height: 32px;
+      margin-top: 4px;
     }
 
     /* --- BARRE DE SAISIE --- */
@@ -271,7 +275,7 @@
       color: #fff;
       font-size: 12px;
       outline: none;
-      margin: 0 6px;
+      margin: 0 4px;
     }
 
     .action-btn {
@@ -281,6 +285,11 @@
       color: #888;
       padding: 4px;
       cursor: pointer;
+    }
+
+    .btn-mic-recording {
+      color: #ff3b30 !important;
+      animation: pulse 1s infinite;
     }
 
     #btn-send {
@@ -294,13 +303,11 @@
       cursor: pointer;
     }
 
-    #file-input { display: none; }
+    #file-input, #audio-input { display: none; }
 
-    /* BASCULE VUE NAVIGATION */
     body.in-chat #sidebar { display: none; }
     body.in-chat #chat-main { display: -webkit-box; display: flex; }
 
-    /* --- MODALES --- */
     .modal-overlay {
       display: none;
       position: fixed;
@@ -401,7 +408,7 @@
 </head>
 <body>
 
-  <!-- ÉCRAN 1 : CONTACTS -->
+  <!-- ECRAN 1 : CONTACTS -->
   <div id="sidebar">
     <div class="sidebar-header">
       <div class="brand">
@@ -416,7 +423,7 @@
     <ul class="friends-list" id="friends-list"></ul>
   </div>
 
-  <!-- ÉCRAN 2 : CONVERSATION -->
+  <!-- ECRAN 2 : CHAT -->
   <div id="chat-main">
     <div id="chat-header">
       <button class="action-btn" onclick="closeChat()" style="margin-right:8px;">←</button>
@@ -430,6 +437,10 @@
       <label for="file-input" class="action-btn">📁</label>
       <input type="file" id="file-input" accept="image/*">
       
+      <!-- BOUTON MICRO ET FICHIER AUDIO DE SECOURS (IPHONE 4) -->
+      <button type="button" id="mic-btn" class="action-btn" onclick="toggleAudioRecord()">🎤</button>
+      <input type="file" id="audio-input" accept="audio/*">
+
       <input id="input-message" autocomplete="off" placeholder="Message..." />
       <button id="btn-send" type="button" onclick="triggerSend()">OK</button>
     </div>
@@ -514,7 +525,7 @@
 
           var friendMsgs = chats[friendName] || [];
           var lastMsg = friendMsgs.length > 0 ? friendMsgs[friendMsgs.length - 1] : null;
-          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap' : lastMsg.text) : 'Nouvelle discussion';
+          var lastText = lastMsg ? (lastMsg.audio ? '🎤 Note vocale' : (lastMsg.image ? '📷 Snap' : lastMsg.text)) : 'Nouvelle discussion';
 
           li.innerHTML = 
             '<div class="avatar">' + friendName.charAt(0).toUpperCase() + '</div>' +
@@ -586,6 +597,13 @@
           div.appendChild(img);
         }
 
+        if (msg.audio) {
+          var aud = document.createElement('audio');
+          aud.controls = true;
+          aud.src = msg.audio;
+          div.appendChild(aud);
+        }
+
         container.appendChild(div);
       }
 
@@ -615,12 +633,12 @@
       }
 
       if (val && val !== '') {
-        sendMessage(val, null);
+        sendMessage(val, null, null);
         input.value = '';
       }
     }
 
-    function sendMessage(text, image) {
+    function sendMessage(text, image, audio) {
       if (!currentFriend) return;
 
       if (!chats[currentFriend]) chats[currentFriend] = [];
@@ -629,6 +647,7 @@
         sender: 'me',
         text: text,
         image: image,
+        audio: audio,
         timestamp: new Date().getTime()
       });
 
@@ -638,13 +657,73 @@
         sender: String(myUsername),
         target: String(currentFriend),
         text: text ? String(text) : null,
-        image: image ? String(image) : null
+        image: image ? String(image) : null,
+        audio: audio ? String(audio) : null
       };
 
       socket.emit('chat message', payload);
 
       renderMessages();
     }
+
+    /* --- ENREGISTREMENT AUDIO (WALKIE TALKIE / NOTES VOCALES) --- */
+    var mediaRecorder = null;
+    var audioChunks = [];
+    var isRecording = false;
+
+    function toggleAudioRecord() {
+      // Si MediaRecorder existe (PC & iPhone 16)
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder) {
+        var btn = document.getElementById('mic-btn');
+        if (!isRecording) {
+          navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = function(e) {
+              if (e.data.size > 0) audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = function() {
+              var audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+              var reader = new FileReader();
+              reader.onload = function(evt) {
+                sendMessage(null, null, evt.target.result);
+              };
+              reader.readAsDataURL(audioBlob);
+
+              // Fermeture des canaux micro
+              var tracks = stream.getTracks();
+              for (var i = 0; i < tracks.length; i++) tracks[i].stop();
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            btn.className = 'action-btn btn-mic-recording';
+          }).catch(function() {
+            alert("Accès micro refusé.");
+          });
+        } else {
+          mediaRecorder.stop();
+          isRecording = false;
+          btn.className = 'action-btn';
+        }
+      } else {
+        // Mode fallback (iPhone 4 / iOS 7) : déclenche le dictaphone
+        document.getElementById('audio-input').click();
+      }
+    }
+
+    document.getElementById('audio-input').onchange = function(e) {
+      var file = e.target.files[0];
+      if (file) {
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          sendMessage(null, null, evt.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
 
     // --- RÉCEPTION RÉSEAU ---
     socket.on('chat message', function(data) {
@@ -662,6 +741,7 @@
         sender: 'other',
         text: data.text,
         image: data.image,
+        audio: data.audio,
         timestamp: new Date().getTime()
       });
 
@@ -679,7 +759,7 @@
       }
     });
 
-    // --- ENVOI FICHIER ---
+    // --- ENVOI FICHIER IMAGE ---
     document.getElementById('file-input').onchange = function(e) {
       var file = e.target.files[0];
       if (file) {
@@ -698,7 +778,7 @@
             canvas.width = w; canvas.height = h;
             ctx.drawImage(img, 0, 0, w, h);
 
-            sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
+            sendMessage(null, canvas.toDataURL('image/jpeg', 0.5), null);
           };
           img.src = evt.target.result;
         };
@@ -737,7 +817,7 @@
       canvas.height = 360;
       canvas.getContext('2d').drawImage(video, 0, 0, 320, 360);
 
-      sendMessage(null, canvas.toDataURL('image/jpeg', 0.5));
+      sendMessage(null, canvas.toDataURL('image/jpeg', 0.5), null);
       closeCamera();
     }
 
