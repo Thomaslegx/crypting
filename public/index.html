@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>Chat Rétro</title>
+  <title>Crypting</title>
   
   <style>
     * { 
@@ -197,7 +197,7 @@
 <body>
 
   <div id="header">
-    <span class="status-dot"></span>Messagerie Rétro
+    <span class="status-dot"></span>Crypting
   </div>
 
   <ul id="messages"></ul>
@@ -237,7 +237,6 @@
       }
     }
 
-    // Met à jour la mémoire locale si l'utilisateur change son nom à la main dans le champ
     pseudo.onchange = function() {
       if (pseudo.value && pseudo.value.trim() !== "") {
         localStorage.setItem('chat_username', pseudo.value.trim());
