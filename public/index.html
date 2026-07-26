@@ -2,7 +2,6 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <!-- Force l'affichage exact 320px sans zoom ni bandes vides sur Safari iOS 7 -->
   <meta name="viewport" content="width=320, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -17,7 +16,6 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* Support complet des anciens Safari iOS */
     html, body {
       width: 100%;
       height: 100%;
@@ -44,7 +42,7 @@
     }
 
     .sidebar-header {
-      height: 44px; /* Hauteur standard iOS 7 */
+      height: 44px;
       padding: 0 10px;
       background-color: #181818;
       display: -webkit-box;
@@ -85,10 +83,11 @@
       background: #262626;
       color: #fffc00;
       border: none;
-      padding: 5px 10px;
+      padding: 6px 12px;
       border-radius: 12px;
       font-size: 11px;
       font-weight: bold;
+      cursor: pointer;
     }
 
     .friends-list {
@@ -104,14 +103,20 @@
       display: flex;
       -webkit-box-align: center;
       align-items: center;
-      padding: 10px;
+      padding: 12px 10px;
       border-bottom: 1px solid #1a1a1a;
+      cursor: pointer;
+    }
+
+    .friend-item:active {
+      background-color: #1f1f1f;
     }
 
     .avatar {
-      width: 34px;
-      height: 34px;
-      background-color: #333;
+      width: 36px;
+      height: 36px;
+      background-color: #fffc00;
+      color: #000;
       border-radius: 50%;
       display: -webkit-box;
       display: flex;
@@ -120,7 +125,6 @@
       -webkit-box-pack: center;
       justify-content: center;
       font-weight: bold;
-      color: #fff;
       margin-right: 10px;
     }
 
@@ -142,6 +146,13 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .empty-state {
+      padding: 30px 15px;
+      text-align: center;
+      color: #666;
+      font-size: 12px;
     }
 
     /* --- ZONE CHAT --- */
@@ -249,6 +260,7 @@
       font-size: 18px;
       color: #888;
       padding: 4px;
+      cursor: pointer;
     }
 
     #btn-send {
@@ -259,15 +271,16 @@
       border-radius: 14px;
       font-weight: bold;
       font-size: 11px;
+      cursor: pointer;
     }
 
     #file-input { display: none; }
 
-    /* BASCULE DE VUE POUR L'ÉCRAN NARROW (320px) */
+    /* BASCULE DE VUE */
     body.in-chat #sidebar { display: none; }
     body.in-chat #chat-main { display: -webkit-box; display: flex; }
 
-    /* --- CAMÉRA MODALE COMPACTE --- */
+    /* --- CAMÉRA MODALE --- */
     #camera-modal {
       display: none;
       position: fixed;
@@ -356,7 +369,6 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    /* JavaScript en ES5 pur pour la compatibilité iOS 7 / WebKit iPhone 4 */
     var socket = io();
     var currentFriend = null;
 
@@ -369,47 +381,59 @@
       localStorage.setItem(key, JSON.stringify(value));
     }
 
-    var friends = getStoredData('crypting_friends', ['Alex', 'Sophie']);
+    // Liste vide par défaut (Alex et Sophie supprimés)
+    var friends = getStoredData('crypting_friends', []);
     var chats = getStoredData('crypting_chats', {});
 
     function renderFriendsList() {
       var listEl = document.getElementById('friends-list');
       listEl.innerHTML = '';
 
+      if (friends.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">Aucun ami ajouté.<br>Clique sur <b>"+ Ajouter"</b> pour commencer.</div>';
+        return;
+      }
+
       for (var i = 0; i < friends.length; i++) {
-        (function(friend) {
+        (function(friendName) {
           var li = document.createElement('li');
           li.className = 'friend-item';
 
-          var friendMsgs = chats[friend] || [];
+          var friendMsgs = chats[friendName] || [];
           var lastMsg = friendMsgs.length > 0 ? friendMsgs[friendMsgs.length - 1] : null;
-          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap reçu' : lastMsg.text) : 'Nouvelle discussion';
+          var lastText = lastMsg ? (lastMsg.image ? '📷 Snap envoyé/reçu' : lastMsg.text) : 'Nouvelle discussion';
 
           li.innerHTML = 
-            '<div class="avatar">' + friend.charAt(0).toUpperCase() + '</div>' +
+            '<div class="avatar">' + friendName.charAt(0).toUpperCase() + '</div>' +
             '<div class="friend-info">' +
-              '<div class="friend-name">' + friend + '</div>' +
+              '<div class="friend-name">' + friendName + '</div>' +
               '<div class="last-message">' + lastText + '</div>' +
             '</div>';
 
-          li.onclick = function() { openChat(friend); };
+          li.onclick = function() {
+            openChat(friendName);
+          };
+
           listEl.appendChild(li);
         })(friends[i]);
       }
     }
 
     function addFriend() {
-      var name = prompt("Nom de l'ami :");
-      if (name && name.trim() !== "" && friends.indexOf(name.trim()) === -1) {
-        friends.push(name.trim());
-        setStoredData('crypting_friends', friends);
-        renderFriendsList();
+      var name = prompt("Nom ou pseudo de l'ami :");
+      if (name && name.trim() !== "") {
+        var cleanName = name.trim();
+        if (friends.indexOf(cleanName) === -1) {
+          friends.push(cleanName);
+          setStoredData('crypting_friends', friends);
+        }
+        openChat(cleanName);
       }
     }
 
-    function openChat(friend) {
-      currentFriend = friend;
-      document.getElementById('active-user-title').textContent = friend;
+    function openChat(friendName) {
+      currentFriend = friendName;
+      document.getElementById('active-user-title').textContent = friendName;
       document.body.className = 'in-chat';
       renderMessages();
     }
@@ -462,7 +486,13 @@
 
       if (!chats[currentFriend]) chats[currentFriend] = [];
 
-      chats[currentFriend].push({ sender: 'me', text: text, image: image, timestamp: new Date().getTime() });
+      chats[currentFriend].push({
+        sender: 'me',
+        text: text,
+        image: image,
+        timestamp: new Date().getTime()
+      });
+
       setStoredData('crypting_chats', chats);
 
       socket.emit('chat message', {
@@ -485,10 +515,16 @@
     }
 
     socket.on('chat message', function(data) {
-      var sender = data.sender || 'Alex';
+      var sender = data.sender || currentFriend || 'Ami';
       if (!chats[sender]) chats[sender] = [];
 
-      chats[sender].push({ sender: 'other', text: data.text, image: data.image, timestamp: new Date().getTime() });
+      chats[sender].push({
+        sender: 'other',
+        text: data.text,
+        image: data.image,
+        timestamp: new Date().getTime()
+      });
+
       setStoredData('crypting_chats', chats);
 
       if (currentFriend === sender) {
@@ -507,7 +543,7 @@
           img.onload = function() {
             var canvas = document.createElement('canvas');
             var ctx = canvas.getContext('2d');
-            var maxDim = 480; // Taille adaptée à la mémoire de l'iPhone 4
+            var maxDim = 480;
             var w = img.width, h = img.height;
 
             if (w > h && w > maxDim) { h = Math.round(h * (maxDim / w)); w = maxDim; }
@@ -533,10 +569,10 @@
           document.getElementById('video-preview').srcObject = stream;
           document.getElementById('camera-modal').style.display = 'block';
         }).catch(function() {
-          alert("Caméra non supportée.");
+          alert("Caméra indisponible.");
         });
       } else {
-        alert("La caméra en direct n'est pas supportée par ce navigateur. Utilisez le bouton dossier 📁 pour importer une photo.");
+        alert("Utilise l'icône dossier 📁 pour ajouter une photo.");
       }
     }
 
