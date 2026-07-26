@@ -1,20 +1,19 @@
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-// Augmentation de la taille de buffer pour supporter les Snaps/images depuis iOS 7
+
+// Limite augmentée (10 Mo) pour envoyer les données audio sans coupure
 const io = require('socket.io')(http, {
-  maxHttpBufferSize: 1e7 // 10 MB
+  maxHttpBufferSize: 1e7
 });
 
 app.use(express.static('public'));
 
-// Association pseudo -> socket.id
 var users = {};
 
 io.on('connection', function(socket) {
   var currentUser = null;
 
-  // 1. Enregistrement du pseudo
   socket.on('register user', function(username) {
     if (!username) return;
     currentUser = String(username).trim();
@@ -22,7 +21,6 @@ io.on('connection', function(socket) {
     console.log('[CONNEXION] ' + currentUser + ' (ID: ' + socket.id + ')');
   });
 
-  // 2. Transmissions de messages 1-à-1 ciblé
   socket.on('chat message', function(data) {
     if (!data) return;
     
@@ -31,19 +29,18 @@ io.on('connection', function(socket) {
     var targetSocketId = users[targetUser];
 
     if (targetSocketId) {
-      // Transmission exclusive au destinataire
       io.to(targetSocketId).emit('chat message', {
         sender: sender,
         text: data.text ? String(data.text) : null,
-        image: data.image ? String(data.image) : null
+        image: data.image ? String(data.image) : null,
+        audio: data.audio ? String(data.audio) : null // Support de l'audio
       });
       console.log('[MSG PRIVÉ] De ' + sender + ' vers ' + targetUser);
     } else {
-      console.log('[ATTENTION] Destinataire non trouvé ou déconnecté : ' + targetUser);
+      console.log('[ATTENTION] Destinataire non disponible : ' + targetUser);
     }
   });
 
-  // 3. Déconnexion
   socket.on('disconnect', function() {
     if (currentUser && users[currentUser]) {
       delete users[currentUser];
