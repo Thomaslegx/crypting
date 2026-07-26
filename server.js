@@ -15,11 +15,12 @@ io.on('connection', function(socket) {
 
   socket.on('register user', function(username) {
     if (!username) return;
-    currentUser = String(username).trim().toLowerCase(); // Conversion en minuscules
+    currentUser = String(username).trim().toLowerCase();
     users[currentUser] = socket.id;
     console.log('[CONNEXION] ' + currentUser + ' (ID: ' + socket.id + ')');
   });
 
+  /* --- CHAT MESSAGES --- */
   socket.on('chat message', function(data) {
     if (!data) return;
     
@@ -41,16 +42,13 @@ io.on('connection', function(socket) {
     var target = data.target ? String(data.target).trim().toLowerCase() : null;
     var targetSocketId = users[target];
     
-    console.log('[APPEL] Tentative de ' + currentUser + ' vers ' + target);
+    console.log('[APPEL] ' + currentUser + ' -> ' + target);
     
     if (targetSocketId) {
       io.to(targetSocketId).emit('incoming-call', {
         from: currentUser,
         offer: data.offer
       });
-      console.log('[APPEL] Transmis à ' + target);
-    } else {
-      console.log('[APPEL ÉCHEC] Utilisateur non trouvé : ' + target);
     }
   });
 
